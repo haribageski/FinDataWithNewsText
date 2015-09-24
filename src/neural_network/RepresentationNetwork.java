@@ -1,28 +1,20 @@
 package neural_network;
 
-import java.io.BufferedReader;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 import news.AllCompaniesSentimentOfNews;
-import company.Company;
-import other_structures.DateModif;
 import other_structures.Sym_Date;
+
+import company.Company;
 
 public class RepresentationNetwork extends Matrix_operations
 {
 	static Integer Layers = 4;		//two hidden layers
-	static Integer parameters;
+	static int parameters;
 	// List <Integer> s_l = new ArrayList<Integer>();
 	Integer K = 1;  //output units
 	Integer m;		//size of training set
@@ -31,7 +23,7 @@ public class RepresentationNetwork extends Matrix_operations
 	static Double[][] Xs_training;
 	static Double[] Ys_training;
 	
-	static Double[][][] Thetas;	//first coordinate is 1 indexed
+	static Double[][][] Thetas;		//it's 1-indexed ,i.e. Theta1 = Thetas[1]
 	static Double[][][] a_l;
 	static Integer[] s_l = new Integer[5];
 	
@@ -43,7 +35,10 @@ public class RepresentationNetwork extends Matrix_operations
 
 	static Double[][][] Ds;	// Ds = d/d Theta of J(Theta)
 	
-	
+	public Double[][] getTheta(int i)
+	{
+		return Thetas[i];
+	}
 	
 	public RepresentationNetwork(
 				Set<Sym_Date> symDatesForTrainingML, Map<String, Company> companies_match, 
@@ -80,7 +75,7 @@ public class RepresentationNetwork extends Matrix_operations
 		
 		
 		// TODO : append is incorrectly defined
-		Xs_training = append(Xs, X_senti);
+		Xs_training = appendToTheBottom(Xs, X_senti);
 		
 		System.out.println("Xs_training:");
 		System.out.println("numof rows:" + Xs_training.length);
@@ -145,7 +140,7 @@ public class RepresentationNetwork extends Matrix_operations
 	}
 	
 
-	public static Double makePrediction(Double [] X)
+	public Double makePrediction(Double [] X)
 	{
 		for(int i=0; i< X.length; i++)
 		{
@@ -153,32 +148,29 @@ public class RepresentationNetwork extends Matrix_operations
 		}
 		System.out.println();
 		parameters = 16;
-		System.out.println("X.length:" + X.length);
-		System.out.println("Layers:" + Layers);
-		System.out.println("parameters:" + parameters);
-		System.out.println("Thetas[1]:" + Thetas[1].length);
+		//System.out.println("X.length:" + X.length + ", Layers:" + Layers + ", parameters:" + parameters);
 		
 		Double [][]a_l = new Double[Layers+1][parameters+1];
 		a_l[1] = add_ones_as_first(X);
-		System.out.println("a_l[1]:" + a_l[1].length);
+		//System.out.println("a_l[1]:" + a_l[1].length);
 		Double[] Z_2 = new Double[parameters];
 		Z_2 = matrix_product(Thetas[1], a_l[1] , parameters, parameters+1);
 		
-		System.out.println("a_l[2][i]");
+		//System.out.println("a_l[2][i]");
 		for(int i=0; i< parameters; i++)
 		{
-			a_l[2][i] = g_func (Z_2[i]);
-			System.out.println("a_l[2]:" + a_l[2][i] + " ");
+			a_l[2][i] = gFunc (Z_2[i]);
+			//System.out.println("a_l[2]:" + a_l[2][i] + " ");
 		}
 		a_l[2] = add_ones_as_first(a_l[2] );
 		
 		Double[] Z_3 = new Double[parameters];
 		Z_3 = matrix_product(Thetas[2], a_l[2] , parameters, parameters+1);
-		System.out.println("a_l[3][i]");
+		//System.out.println("a_l[3][i]");
 		for(int i=0; i< parameters; i++)
 		{
-			a_l[3][i] = g_func (Z_3[i]);
-			System.out.println("a_l[3]:" + a_l[3][i] + " ");
+			a_l[3][i] = gFunc (Z_3[i]);
+			//System.out.println("a_l[3]:" + a_l[3][i] + " ");
 		}
 		a_l[3] = add_ones_as_first(a_l[3] );
 		
@@ -186,16 +178,15 @@ public class RepresentationNetwork extends Matrix_operations
 		Double Z_4 = 0.0;
 		Z_4 = matrix_product(Thetas[3], a_l[3] , 1, parameters+1)[0];
 		
-		System.out.println(g_func (Z_4));
-		h_Theta_all_a4[0][0] = g_func (Z_4);
-		System.out.println("h_Theta_all_a4[0][0]:" + h_Theta_all_a4[0][0]);
+		//System.out.println(g_func (Z_4));
+		h_Theta_all_a4[0][0] = gFunc (Z_4);
+		//System.out.println("h_Theta_all_a4[0][0]:" + h_Theta_all_a4[0][0]);
 		return  h_Theta_all_a4[0][0];
-		
 	}
 
 
 	/*
-	 * the core functionality, this is the top level , it calls all the other functions
+	 * The core function of ML. It is the top level and it calls all the other functions
 	 */
 	public void Learn()	
 	{
@@ -205,8 +196,8 @@ public class RepresentationNetwork extends Matrix_operations
 			all_forward_propagation();
 			all_Backpropagation();
 			update_Theta();
-			System.out.println(cost_function_J_Theta());
-		} while(cost_function_J_Theta()>0);
+			System.out.println(costFunctionJ());
+		} while(costFunctionJ()>0);
 	}
 
 	void update_Theta()
@@ -224,40 +215,24 @@ public class RepresentationNetwork extends Matrix_operations
 	{
 		a_l[1] = Xs_training;
 		Double[][] z_2 = new Double[parameters][m];
-		/*
-		System.out.println("Theta 1");
-		for(int i = 0;i < Thetas[1].length; i++)
-		{
-			for(int j = 0;j < Thetas[1][0].length; j++)
-				System.out.print(Thetas[1][i][j]);
-			System.out.println();
-		}
-		
-		System.out.println("Xs_training");
-		for(int i = 0;i < Xs_training.length; i++)
-		{
-			for(int j = 0;j < Xs_training[0].length; j++)
-				System.out.print(Xs_training[i][j]);
-			System.out.println();
-		}
-		*/
+
 		z_2 = matrix_product(Thetas[1], Xs_training , parameters, parameters+1, m);
 		for(int i=0; i< parameters; i++)
 			for(int j=0; j< m; j++)
-				a_l[2][i][j] = g_func (z_2[i][j]);
+				a_l[2][i][j] = gFunc (z_2[i][j]);
 		a_l[2] = add_ones_as_first(a_l[2] , parameters , m);
 		
 		Double[][] z_3 = new Double[parameters][m];
 		z_3 = matrix_product(Thetas[2], a_l[2] , parameters, parameters+1, m);
 		for(int i=0; i< parameters; i++)
 			for(int j=0; j< m; j++)
-				a_l[3][i][j] = g_func (z_3[i][j]);
+				a_l[3][i][j] = gFunc (z_3[i][j]);
 		a_l[3] = add_ones_as_first(a_l[3] , parameters , m);
 		
 		Double[][] z_4 = new Double[1][m];
 		z_4 = matrix_product(Thetas[3], a_l[3] , 1, parameters+1, m);
 		for(int j=0; j< m; j++)
-			h_Theta_all_a4[0][j] = g_func (z_4[0][j]);
+			h_Theta_all_a4[0][j] = gFunc (z_4[0][j]);
 		a_l[4][0] = h_Theta_all_a4[0];
 	}
 	
@@ -318,8 +293,11 @@ public class RepresentationNetwork extends Matrix_operations
 	
 	
 	
-	
-	Double cost_function_J_Theta()
+	/**
+	 * We add second summand multiplied with very small parameter lamda to avoid overfitting.
+	 * @return
+	 */
+	Double costFunctionJ()
 	{
 		Double Current_Sum = 0.0 , Second_sum = 0.0;
 		for(int i=0; i<m ; i++)
@@ -342,7 +320,7 @@ public class RepresentationNetwork extends Matrix_operations
 	
 	
 	
-	static Double g_func(Double z)
+	static Double gFunc(Double z)
 	{
 		return 1/(1+Math.pow(Math.E , -z));
 	}
@@ -357,10 +335,10 @@ public class RepresentationNetwork extends Matrix_operations
 	 * 
 	 * @return
 	 */
-	public static Double[][] append(Double[][] matrix1, Double[][] matrix2) 
+	public static Double[][] appendToTheBottom(Double[][] matrix1, Double[][] matrix2) 
 	{
-		System.out.println("RepresentationNetwork.append first matrix len 1st dim: " + matrix1.length + ",len 2nd dim: " + matrix1[0].length );
-		System.out.println("RepresentationNetwork.append second matrix len 1st dim: " + matrix2.length + ",len 2nd dim: " + matrix2[0].length );
+		//System.out.println("RepresentationNetwork.append first matrix len 1st dim: " + matrix1.length + ",len 2nd dim: " + matrix1[0].length );
+		//System.out.println("RepresentationNetwork.append second matrix len 1st dim: " + matrix2.length + ",len 2nd dim: " + matrix2[0].length );
 		
 		Double[][] result = new Double[matrix1.length + matrix2.length][matrix1[0].length];
 		
@@ -371,24 +349,26 @@ public class RepresentationNetwork extends Matrix_operations
 		for(int i = 0; i < matrix2.length; i++)
 			for(int j = 0; j < matrix2[0].length; j++)
 				result[i + matrix1.length][j] = matrix2[i][j];
-		/*
-        System.out.println("Xs_fin size:");
-        for(int i = 0; i<doubles.length; i++)
-		{
-			for(int j = 0; j<doubles[i].length; j++)
-				if(doubles[i][j] == null)
-					System.out.print("i=" +i + ",j=" +j);
-			System.out.println();
-		}
-        */
-        /*BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-		String username = null;
-        try {
-            username = reader.readLine();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } 
-		*/
+        
+        return result;
+    }
+	
+	
+	
+	public static Double[][] appendToTheRight(Double[][] matrix1, Double[][] matrix2) 
+	{
+		//System.out.println("RepresentationNetwork.append first matrix len 1st dim: " + matrix1.length + ",len 2nd dim: " + matrix1[0].length );
+		//System.out.println("RepresentationNetwork.append second matrix len 1st dim: " + matrix2.length + ",len 2nd dim: " + matrix2[0].length );
+		
+		Double[][] result = new Double[matrix1.length][matrix1[0].length + matrix2[0].length];
+		
+		for(int i = 0; i < matrix1.length; i++)
+			for(int j = 0; j < matrix1[0].length; j++)
+				result[i][j] = matrix1[i][j];
+		
+		for(int i = 0; i < matrix2.length; i++)
+			for(int j = 0; j < matrix2[0].length; j++)
+				result[i][j + matrix1[0].length] = matrix2[i][j];
         
         return result;
     }

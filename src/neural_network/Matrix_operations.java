@@ -40,6 +40,8 @@ public class Matrix_operations
 	
 	public static Double[] matrix_product (Double [][] M1, Double [] M2, int index_1 , int index_2)
 	{
+		//System.out.println("M1 size:" + M1.length + " x " + M1[0].length + ", M2 size:" + M2.length + ", indexes:" + 
+								//index_1 + " , " + index_2);
 		Double[] R = new Double[index_1];
 		for(int i=0; i<index_1 ; i++)
 		{

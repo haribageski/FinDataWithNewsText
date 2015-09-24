@@ -19,6 +19,8 @@ import java.util.TreeSet;
 
 import company.Company;
 import daily_financial_parameters.Basic_daily_fin_data;
+import neural_network.CrossValidationMatrix;
+import neural_network.Predict;
 import neural_network.RepresentationNetwork;
 import neural_network.Training_X_Y_matrix;
 import news.AllCompaniesSentimentOfNews;
@@ -38,12 +40,14 @@ public class Main
 	static StanfordCoreNLP pipeline;
 	static int parameters = 16;
 	static int _trainingSize = 0;
+	static int _crossValidatSize = 0;
+	static int _testingSize = 0;
 	//static List<String> _symbols;
 	static Set<Sym_Date> _symDates = new HashSet<Sym_Date>();
 	static List<String> _symbolsInSymDates = new ArrayList<String>();;
 	static Set<Sym_Date> _symDatesForTrainingML = new HashSet<Sym_Date>();;
 	
-	static List<Sym_Date> _symDatesForCrossValidationML;
+	static Set<Sym_Date> _symDatesForCrossValidationML = new HashSet<Sym_Date>();
 	static List<Sym_Date> _symDatesForTestingML;
 	//static List<DateModif> _dates;
 	//static List<String> _symbolsForTrainingML;
@@ -66,6 +70,8 @@ public class Main
 	static Map<String, Company> crossValidationCompaniesMap = new TreeMap<String, Company>();
 	static Map<String, Company> testingCompaniesMap = new TreeMap<String, Company>();
 
+	static NormalizeParameterInAllEntries<Sym_Date, Basic_daily_fin_data> normalizedColumnQuotes;
+	
 	static RepresentationNetwork neuralNet;
 
 	public Main() {	}
@@ -104,7 +110,7 @@ public class Main
 
 		List<String> Symbols = new ReadUniqueSymFromFile(uniqueSymPath).getLinesFromFile();
 
-		//initiateStanfordNLP();	TODO don't forget this to uncomment
+		initiateStanfordNLP();	//TODO don't forget this to uncomment
 		
 		setColumnMapsOfParameters(Symbols);
 					
@@ -129,23 +135,50 @@ public class Main
 		
 		neuralNet = new RepresentationNetwork( _symDatesForTrainingML, trainingCompaniesMap, _trainingSize, parameters);
 		
-		
-		
 		// Initiate neural network
-		neuralNet.Learn();
-		
-		/*
-		 * TODO
-		 * Double [][]Xs = new Double[parameters-6][training_size];	//used to store financial parameters (without senti parameters)
-		 * Double []Y = new Double[training_size];	
-		 * int [] trainingSize = new int [1];
-		 * Training_X_Y_matrix.Create_X_Y_finnance_Matrix	(Sym_for_training_matching, dates_for_training_matching, 
-				companies_match, Xs, Y, trainingSize);
-		
-		 */
-		
-
+		neuralNet.Learn();		
 		System.out.println("Neural network done");	
+		
+		
+		
+		Double [][] XsCrossValidat = createCrossValidationMatrix();
+		List <Sym_Date> symDatesCrossValidatList = new ArrayList<Sym_Date>(_symDatesForCrossValidationML);
+		for(int i = 0; i < XsCrossValidat.length; i++)
+		{
+			Double predicterVal;
+			predicterVal = neuralNet.makePrediction( XsCrossValidat[i]);
+			Sym_Date symDate = symDatesCrossValidatList.get(i);
+			System.out.println("predicterVal normalized:" + predicterVal.toString());
+			
+			System.out.println("original value:" + normalizedColumnQuotes.getNormalizedData(symDate).get_val().toString());
+		}
+	}
+	
+	
+	static Double[][] createCrossValidationMatrix() throws FileNotFoundException, UnsupportedEncodingException
+	{
+		
+		Double [][] XsCrossValidatFinancial = new Double[_crossValidatSize][parameters - 6];	//used to store financial parameters (without senti parameters)
+		Double []YCrossValidat = new Double[_crossValidatSize];
+		_symDatesForCrossValidationML = CrossValidationMatrix.CreateX_Y_CrossValidationFinnanceMatrix(
+				new HashSet<Sym_Date>(_symDatesForCrossValidationML), crossValidationCompaniesMap, 
+				XsCrossValidatFinancial, YCrossValidat, _crossValidatSize);
+		_crossValidatSize = _symDatesForCrossValidationML.size();
+		
+		Double[][]XCorrected = new Double[_crossValidatSize][parameters - 6];
+		for(int j = 0; j < _crossValidatSize; j++)
+			for(int i = 0; i < parameters - 6; i++)
+				XCorrected[j][i] = XsCrossValidatFinancial[j][i];
+		XsCrossValidatFinancial = XCorrected;
+		
+		Double[][] X_senti = new Double[_crossValidatSize][6];
+		X_senti = AllCompaniesSentimentOfNews.makeX_FromSentimentCrossValidat(CrossValidationMatrix.getSymDates());
+		System.out.println("RepresentationNetwork.X_senti size:" + X_senti.length + " x " + X_senti[0].length);
+		
+		Double [][]XsCrossValidatOverall = new Double[_crossValidatSize][parameters];
+		XsCrossValidatOverall = RepresentationNetwork.appendToTheRight(XsCrossValidatFinancial , X_senti);
+		
+		return XsCrossValidatOverall;
 	}
 	
 	
@@ -352,7 +385,7 @@ public class Main
 				new NormalizeParameterInAllEntries<Sym_Date, Basic_daily_fin_data>(Column_dividends);
 		Column_dividends = normalizedColumnDividends.getValuesOfParameterNormalized();
 	
-		NormalizeParameterInAllEntries<Sym_Date, Basic_daily_fin_data> normalizedColumnQuotes = 
+		normalizedColumnQuotes = 
 				new NormalizeParameterInAllEntries<Sym_Date, Basic_daily_fin_data>(Column_qoutes);
 		Column_qoutes = normalizedColumnQuotes.getValuesOfParameterNormalized();
 		
@@ -602,7 +635,6 @@ public class Main
 	public static void divideCompaniesMapTrainCrossValTest()
 	{
 		List<String> keys = new ArrayList<String>(companiesMap.keySet());
-		_symDatesForCrossValidationML = new ArrayList<Sym_Date>();
 		_symDatesForTestingML  = new ArrayList<Sym_Date>();
 		int i = 0;
 		for(String key : keys)
@@ -636,6 +668,8 @@ public class Main
 		}
 		
 		_trainingSize = _symDatesForTrainingML.size();
+		_crossValidatSize = _symDatesForCrossValidationML.size();
+		_testingSize = _symDatesForTestingML.size();
 		
 		System.out.println("training_size:" + _trainingSize + " ,parameters:"
 				+ parameters + ", Companies_match" + companiesMap.size());

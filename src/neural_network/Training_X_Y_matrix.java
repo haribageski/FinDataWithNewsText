@@ -52,44 +52,37 @@ public class Training_X_Y_matrix {
 			String sym = symDate.get_sym();
 			Integer year = symDate.get_Date_modif().get_year_in_date();
 			//System.out.println("news in year:" + year); 
+			Sym_Year currentSymYear = new Sym_Year(sym, year);
 			Sym_Year S_Y_prev = new Sym_Year(sym, year-1);
 			
-			//System.out.println("i =" + i + ",sym:" + Sym + ",repeader_sym_for_training_matching :" + Repeader_sym_for_training_matching.size() + ", S_Y_prev:" + S_Y_prev.get_year());
-			/*
-			Companies_match.get(Sym);
-			Companies_match.get(Sym).get_Fin_fundamentals();
-			*/
 			
-			System.out.println(mapOfCompanies.get(sym) + " " + symDate.get_Date_modif().toString());
-			System.out.println(mapOfCompanies.get(sym).get_Company_Dividend());
-			System.out.println(mapOfCompanies.get(sym).get_Company_Dividend().get_avg_dividends());
 			//System.out.println(mapOfCompanies.get(sym).get_Company_Qoutes().get_quotes_map().get(symDate).isNaN() );
 			
 			
 			try {
-				//make sure the previous year is available in all parameters to learn the quote for the current year
-				if(!mapOfCompanies.get(sym).get_Company_SUE().Get_avg_per_y_SUE().containsKey(year-1) ||
-						!mapOfCompanies.get(sym).get_Company_Dividend().get_avg_dividends().containsKey(year-1) ||
-						!mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyBookVal().containsKey(S_Y_prev) ||
-						!mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyShares().containsKey(S_Y_prev) ||
-						!mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyROE().containsKey(S_Y_prev) ||
-						!mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyAccrual().containsKey(S_Y_prev) ||
-						!mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyMarketVals().containsKey(S_Y_prev) ||
-						!mapOfCompanies.get(sym).get_Fin_fundamentals().getAllBM_Ratios().containsKey(S_Y_prev)  || 
-						!mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyYearSizes().containsKey(S_Y_prev) ||
+				//make sure the current year is available in all parameters to learn the quote for a date in the current year
+				if(!mapOfCompanies.get(sym).get_Company_SUE().Get_avg_per_y_SUE().containsKey(year) ||
+						!mapOfCompanies.get(sym).get_Company_Dividend().get_avg_dividends().containsKey(year) ||
+						!mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyBookVal().containsKey(currentSymYear) ||
+						!mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyShares().containsKey(currentSymYear) ||
+						!mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyROE().containsKey(currentSymYear) ||
+						!mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyAccrual().containsKey(currentSymYear) ||
+						!mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyMarketVals().containsKey(currentSymYear) ||
+						!mapOfCompanies.get(sym).get_Fin_fundamentals().getAllBM_Ratios().containsKey(currentSymYear)  || 
+						!mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyYearSizes().containsKey(currentSymYear) ||
 						!mapOfCompanies.get(sym).get_Company_Qoutes().get_quotes_map().containsKey(symDate.get_Date_modif().get_prev_day_as_datemodif()) ||
 						(!mapOfCompanies.get(sym).get_Company_Qoutes().get_quotes_map().containsKey(symDate.get_Date_modif() ) && 
 								Y != null) ||
 						
-						//Companies_match.get(Sym).get_Company_SUE().Get_avg_per_y_SUE().get(year-1).isNaN() ||
-						mapOfCompanies.get(sym).get_Company_Dividend().get_avg_dividends().get(year-1).isNaN() ||
-						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyBookVal().get(S_Y_prev).getVal().isNaN() ||
-						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyShares().get(S_Y_prev).getVal().isNaN() ||
-						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyROE().get(S_Y_prev).getVal().isNaN() ||
-						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyAccrual().get(S_Y_prev).getVal().isNaN() ||
-						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyMarketVals().get(S_Y_prev).isNaN() ||
-						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllBM_Ratios().get(S_Y_prev).isNaN() ||
-						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyYearSizes().get(S_Y_prev).isNaN() ||
+						mapOfCompanies.get(sym).get_Company_SUE().Get_avg_per_y_SUE().get(year).isNaN() ||
+						mapOfCompanies.get(sym).get_Company_Dividend().get_avg_dividends().get(year).isNaN() ||
+						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyBookVal().get(currentSymYear).getVal().isNaN() ||
+						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyShares().get(currentSymYear).getVal().isNaN() ||
+						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyROE().get(currentSymYear).getVal().isNaN() ||
+						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyAccrual().get(currentSymYear).getVal().isNaN() ||
+						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyMarketVals().get(currentSymYear).isNaN() ||
+						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllBM_Ratios().get(currentSymYear).isNaN() ||
+						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyYearSizes().get(currentSymYear).isNaN() ||
 						mapOfCompanies.get(sym).get_Company_Qoutes().get_quotes_map().get(symDate.get_Date_modif().get_prev_day_as_datemodif()).isNaN() ||
 						mapOfCompanies.get(sym).get_Company_Qoutes().get_quotes_map().get(symDate.get_Date_modif()).isNaN() 
 						
@@ -101,16 +94,16 @@ public class Training_X_Y_matrix {
 				else
 				{
 					//System.out.println("containsKey:" + Companies_match.get(Sym).get_Fin_fundamentals().get_all_company_book_val().containsKey(S_Y_prev));
-					X[0][i-skipped] = 1.0;// Companies_match.get(Sym).get_Company_SUE().Get_avg_per_y_SUE().get(year-1);
-					X[1][i-skipped] = mapOfCompanies.get(sym).get_Company_Dividend().get_avg_dividends().get(year-1);
-					X[2][i-skipped] = mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyBookVal().get(S_Y_prev).getVal();
-					X[3][i-skipped] = mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyShares().get(S_Y_prev).getVal();
-					X[4][i-skipped] = mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyROE().get(S_Y_prev).getVal();
-					X[5][i-skipped] = mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyAccrual().get(S_Y_prev).getVal();
-					X[6][i-skipped] = mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyMarketVals().get(S_Y_prev);
-					X[7][i-skipped] = mapOfCompanies.get(sym).get_Fin_fundamentals().getAllBM_Ratios().get(S_Y_prev);
+					X[0][i-skipped] = mapOfCompanies.get(sym).get_Company_SUE().Get_avg_per_y_SUE().get(year);
+					X[1][i-skipped] = mapOfCompanies.get(sym).get_Company_Dividend().get_avg_dividends().get(year);
+					X[2][i-skipped] = mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyBookVal().get(currentSymYear).getVal();
+					X[3][i-skipped] = mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyShares().get(currentSymYear).getVal();
+					X[4][i-skipped] = mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyROE().get(currentSymYear).getVal();
+					X[5][i-skipped] = mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyAccrual().get(currentSymYear).getVal();
+					X[6][i-skipped] = mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyMarketVals().get(currentSymYear);
+					X[7][i-skipped] = mapOfCompanies.get(sym).get_Fin_fundamentals().getAllBM_Ratios().get(currentSymYear);
 					X[8][i-skipped] = mapOfCompanies.get(sym).get_Company_Qoutes().get_quotes_map().get(symDate.get_Date_modif().get_prev_day_as_datemodif());
-					X[9][i-skipped] = mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyYearSizes().get(S_Y_prev);
+					X[9][i-skipped] = mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyYearSizes().get(currentSymYear);
 					
 					if(Y != null)
 						Y[i-skipped] = mapOfCompanies.get(sym).get_Company_Qoutes().get_quotes_map().get(symDate.get_Date_modif());

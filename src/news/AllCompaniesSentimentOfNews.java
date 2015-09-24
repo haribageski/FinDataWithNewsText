@@ -190,5 +190,32 @@ public class AllCompaniesSentimentOfNews
 		}
 		return X_Senti;
 	}
+	
+	
+	
+	public static Double [][] makeX_FromSentimentCrossValidat( Set<Sym_Date>lastValidSymDatesFromTrainingMatrix)
+	{
+		_validSymDates = lastValidSymDatesFromTrainingMatrix;
+		Double[][] X_Senti = new Double[_validSymDates.size()][6];
+		int j = 0;
+		List <Sym_Date> _sentiFilesSymDatesOrderedList = new ArrayList<Sym_Date>(_sentiFilesSymDatesOrdered);
+		for(Sym_Date symDate : _validSymDates)
+		{
+			for(int i = 0; i < _sentiFilesSymDatesOrdered.size(); i++)
+			{
+				if(_sentiFilesSymDatesOrderedList.get(i).equals(symDate))
+				{
+					X_Senti [j][0] = _posTitles.get(i);
+					X_Senti [j][1] = _negTitle.get(i);
+					X_Senti [j][2] = _neutTitles.get(i);
+					X_Senti [j][3] = _posDescr.get(i);
+					X_Senti [j][4] = _negDescr.get(i);
+					X_Senti [j][5] = _neutDescr.get(i);
+				}
+			}
+			j++;
+		}
+		return X_Senti;
+	}
 
 }
