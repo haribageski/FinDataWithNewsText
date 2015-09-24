@@ -4,19 +4,17 @@ import java.io.FileNotFoundException;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import company.Company;
-
 import other_structures.DateModif;
+import other_structures.Sym_Date;
 
 public class Predict extends RepresentationNetwork
 {
-	public Predict(List<String> Sym_for_training_matching,
-			List<DateModif> dates_for_training_matching,
-			Map<String, Company> companies_match, int training_size, int param,
-			Double[][] X_senti) throws FileNotFoundException, UnsupportedEncodingException {
-		super(Sym_for_training_matching, dates_for_training_matching, companies_match,
-				training_size, param, X_senti);
+	public Predict(Set<Sym_Date> symDatesForTrainingML,	Map<String, Company> companies_match, 
+			int training_size, int param, Double[][] X_senti) throws FileNotFoundException, UnsupportedEncodingException {
+		super(symDatesForTrainingML, companies_match, training_size, param, X_senti);
 		// TODO Auto-generated constructor stub
 	}
 

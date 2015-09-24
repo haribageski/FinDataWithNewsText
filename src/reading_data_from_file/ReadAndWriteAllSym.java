@@ -3,13 +3,9 @@ package reading_data_from_file;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Scanner;
 
 import writing_data_to_file.WriteToFile;
 
@@ -37,27 +33,27 @@ public class ReadAndWriteAllSym
 		
 		ReadUniqueSymFromFile Unique_sym = new ReadUniqueSymFromFile(
 				"D:\\my documents\\Senior_Project_datasets\\R\\Constituents_fin_unique_sym.txt");
-		_codesOfCompanies.addAll(ReadFromFile.readTabSeparatedLines(Unique_sym.getUniqueSymbols()));
+		_codesOfCompanies.addAll(ReadFromFile.readTabSeparatedLines(Unique_sym.getLinesFromFile()));
 		
 		Unique_sym = new ReadUniqueSymFromFile(
 				"D:\\my documents\\Senior_Project_datasets\\earning_surprise_unique_sym.txt");
-		_codesOfCompanies.retainAll(ReadFromFile.readTabSeparatedLines(Unique_sym.getUniqueSymbols()));
+		_codesOfCompanies.retainAll(ReadFromFile.readTabSeparatedLines(Unique_sym.getLinesFromFile()));
 		
 		Unique_sym = new ReadUniqueSymFromFile(
 				"D:\\my documents\\Senior_Project_datasets\\Fin_param_unique_sym.txt");
-		_codesOfCompanies.retainAll(ReadFromFile.readTabSeparatedLines(Unique_sym.getUniqueSymbols()));
+		_codesOfCompanies.retainAll(ReadFromFile.readTabSeparatedLines(Unique_sym.getLinesFromFile()));
 		
 		Unique_sym = new ReadUniqueSymFromFile(
 				"D:\\my documents\\Senior_Project_datasets\\dividends_unique_sym.txt");
-		_codesOfCompanies.retainAll(ReadFromFile.readTabSeparatedLines(Unique_sym.getUniqueSymbols()));
+		_codesOfCompanies.retainAll(ReadFromFile.readTabSeparatedLines(Unique_sym.getLinesFromFile()));
 		
 		Unique_sym = new ReadUniqueSymFromFile(
 				"D:\\my documents\\Senior_Project_datasets\\google_news_unique_sym.txt");
-		_codesOfCompanies.retainAll(ReadFromFile.readTabSeparatedLines(Unique_sym.getUniqueSymbols()));
+		_codesOfCompanies.retainAll(ReadFromFile.readTabSeparatedLines(Unique_sym.getLinesFromFile()));
 				
 		Unique_sym = new ReadUniqueSymFromFile(
 				"D:\\my documents\\Senior_Project_datasets\\quotes_unique_sym.txt");
-		_codesOfCompanies.retainAll(ReadFromFile.readTabSeparatedLines(Unique_sym.getUniqueSymbols()));
+		_codesOfCompanies.retainAll(ReadFromFile.readTabSeparatedLines(Unique_sym.getLinesFromFile()));
 		
 		
 		

@@ -1,5 +1,6 @@
 package scr;
 
+import java.io.Console;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -37,8 +38,16 @@ public class Main
 	static StanfordCoreNLP pipeline;
 	static int parameters = 16;
 	static int _trainingSize = 0;
-	static List<String> _symbolsForTrainingML;
-	static List<DateModif> _datesForTrainingML;
+	//static List<String> _symbols;
+	static Set<Sym_Date> _symDates = new HashSet<Sym_Date>();
+	static List<String> _symbolsInSymDates = new ArrayList<String>();;
+	static Set<Sym_Date> _symDatesForTrainingML = new HashSet<Sym_Date>();;
+	
+	static List<Sym_Date> _symDatesForCrossValidationML;
+	static List<Sym_Date> _symDatesForTestingML;
+	//static List<DateModif> _dates;
+	//static List<String> _symbolsForTrainingML;
+	//static List<DateModif> _datesForTrainingML;
 
 	// non sorted , needed for normalization and to create X matrix
 	static Map<Sym_Year, basicYearlyFinData> Column_shares = new TreeMap<Sym_Year, basicYearlyFinData>();
@@ -93,9 +102,9 @@ public class Main
 		 * generating sentiment files!!!!!!!!!
 		 */
 
-		List<String> Symbols = new ReadUniqueSymFromFile(uniqueSymPath).getUniqueSymbols();
+		List<String> Symbols = new ReadUniqueSymFromFile(uniqueSymPath).getLinesFromFile();
 
-		initiateStanfordNLP();
+		//initiateStanfordNLP();	TODO don't forget this to uncomment
 		
 		setColumnMapsOfParameters(Symbols);
 					
@@ -107,16 +116,18 @@ public class Main
 		
 		filterCompaniesAndSetOtherParameters();
 		
+		/*for(Sym_Date symDate : _symDates)
+			System.out.println(symDate.toString());*/
+		
 		prepareForMachineLearning();
 		
-		//divideCompaniesMapTrainCrossValTest();
+		divideCompaniesMapTrainCrossValTest();
 		
 		// Prepare neural network representation
 		System.out.println("Neural network starts");
-		neuralNet = new RepresentationNetwork(
-				_symbolsForTrainingML, _datesForTrainingML,
-				trainingCompaniesMap, _trainingSize, parameters, 
-				AllCompaniesSentimentOfNews.makeX_FromSentimentData());
+		System.out.println("trainingCompaniesMap size:" + trainingCompaniesMap.size());
+		
+		neuralNet = new RepresentationNetwork( _symDatesForTrainingML, trainingCompaniesMap, _trainingSize, parameters);
 		
 		
 		
@@ -139,33 +150,7 @@ public class Main
 	
 	
 	
-	public static void divideCompaniesMapTrainCrossValTest()
-	{
-		Set<String> keys = companiesMap.keySet();
-		int i = 0;
-		for(String key : keys)
-		{
-			if(i < companiesMap.size()*0.6)
-			{
-				Company tempCompany = companiesMap.get(key);
-				trainingCompaniesMap.put(key, tempCompany);
-				i++;
-			}
-			else
-			if(i >= companiesMap.size()*0.6 && i < companiesMap.size()*0.8)
-			{
-				Company tempCompany = companiesMap.get(key);
-				crossValidationCompaniesMap.put(key, tempCompany);
-				i++;
-			}
-			else
-			{
-				Company tempCompany = companiesMap.get(key);
-				testingCompaniesMap.put(key, tempCompany);
-				i++;
-			}
-		}
-	}
+	
 	
 	
 
@@ -530,8 +515,8 @@ public class Main
 	}
 	
 	
-	/** Companies recreated. Filter companies with some parameter outlier that is erased and now is null.
-	 * Set the other parameters and generating senti files (but that is needed only once)
+	/** Companies recreated. Filter companies with some parameter outlier that has been erased in the previous step and now is null.
+	 * Set the other parameters and read or evaluate (and generate) senti files
 	 * @throws ParseException 
 	 * @throws IOException 
 	 */
@@ -546,40 +531,117 @@ public class Main
 			company = companiesMap.get(Sym);
 			company.readOrEvalSentiOfNews();	//this will also store senti to file
 			company.findConsistentYearsFromFinancialData();
+			company.findConsistentDatesFromFinancialData();
 			company.makeConsistentNewsWithFinancialData();
+			
+			//makeConsistentNewsWithFinancialData()...
+			List<DateModif> consistentDates = new ArrayList<DateModif>(company.getNewsAvgSentiPerDateDescript().keySet());
+			for(DateModif dateModif : consistentDates)
+			{
+				Sym_Date symDate = new Sym_Date(Sym, dateModif);
+				_symDates.add(symDate);
+				_symbolsInSymDates.add(Sym);
+			}
+			
 			company.setFinancialParameters(); 		// it finds other derived financial parameters
 	
 			companiesMap.replace(Sym, company);
 		}
+		
+		System.out.println("after Main.filterCompaniesAndSetOtherParameters() _symDates size:" + _symDates.size());
 	}
 	
 	
 	static void prepareForMachineLearning()
 	{
-
+		System.out.println("Read_sentiment._symDates size:"	+ _symDates.size());
 		// reading from the above generated files
-		AllCompaniesSentimentOfNews.setSymbols(companiesMap.keySet());
-		AllCompaniesSentimentOfNews.readAllSentiFiles();
-
-		_symbolsForTrainingML = new ArrayList<String>(
-				AllCompaniesSentimentOfNews.get_symbols());
-		_datesForTrainingML = new ArrayList<DateModif>(
-				AllCompaniesSentimentOfNews.get_dates());
-
-		System.out.println("Read_sentiment.get_symbols() size:"
-				+ AllCompaniesSentimentOfNews.get_symbols().size());
-		System.out.println("Repeader_sym_for_training_matching size:"
-				+ _symbolsForTrainingML.size());
-		System.out.println("Dates_for_training_matching:"
-				+ _datesForTrainingML.size());
+		AllCompaniesSentimentOfNews allCompaniesSentimentOfNews = 
+				new AllCompaniesSentimentOfNews(_symDates, _symbolsInSymDates);
+		
+		//allCompaniesSentimentOfNews.readAllSentiFiles()...
+		System.out.println("Size after reading senti files: " + allCompaniesSentimentOfNews.readAllSentiFiles());
+		_symDates = new HashSet<Sym_Date>(allCompaniesSentimentOfNews.getSymDates());
+		System.out.println("Size of _symDates after setting it from reading senti files: " + 
+				_symDates.size());
+		
+		//_symDates = allCompaniesSentimentOfNews.getSymDates();
+		/*_symbols = new ArrayList<String>(
+				AllCompaniesSentimentOfNews.getSymbDates());
+		_dates = new ArrayList<DateModif>(
+				AllCompaniesSentimentOfNews.get_dates());*/
 
 		
-		_trainingSize = _symbolsForTrainingML.size();
-
-		System.out.println("training_size:" + _trainingSize + " ,parameters:"
-				+ parameters + "Companies_match" + companiesMap.size());
-
+		/*System.out.println("Repeader_sym_for_training_matching size:"
+				+ _symbolsForTrainingML.size());
+		System.out.println("Dates_for_training_matching:"
+				+ _datesForTrainingML.size());*/
+		
+		
+		Map<String,Company> tempCompaniesMap = new TreeMap<String, Company>();
+		
+		for(String key : companiesMap.keySet())
+		{
+			boolean t = false;
+			for(Sym_Date symDate : _symDates)
+				if(symDate.get_sym().equals(key))
+				{
+					t = true;
+					break;
+				}
+			if(t == true)
+				tempCompaniesMap.put(key, companiesMap.get(key));
+		}
+		companiesMap = tempCompaniesMap;
 	}
+	
+	
+	
+	
+	
+	public static void divideCompaniesMapTrainCrossValTest()
+	{
+		List<String> keys = new ArrayList<String>(companiesMap.keySet());
+		_symDatesForCrossValidationML = new ArrayList<Sym_Date>();
+		_symDatesForTestingML  = new ArrayList<Sym_Date>();
+		int i = 0;
+		for(String key : keys)
+		{
+			if(i < companiesMap.size()*0.6)
+			{
+				Company tempCompany = companiesMap.get(key);
+				trainingCompaniesMap.put(key, tempCompany);
+				for(Sym_Date symDate : _symDates)
+					if(symDate.get_sym().equals(key))
+						_symDatesForTrainingML.add(symDate);
+			}
+			else
+			if(i >= companiesMap.size()*0.6 && i < companiesMap.size()*0.8)
+			{
+				Company tempCompany = companiesMap.get(key);
+				crossValidationCompaniesMap.put(key, tempCompany);
+				for(Sym_Date symDate : _symDates)
+					if(symDate.get_sym().equals(key))
+						_symDatesForCrossValidationML.add(symDate);
+			}
+			else
+			{
+				Company tempCompany = companiesMap.get(key);
+				testingCompaniesMap.put(key, tempCompany);
+				for(Sym_Date symDate : _symDates)
+					if(symDate.get_sym().equals(key))
+						_symDatesForTestingML.add(symDate);
+			}
+			i++;
+		}
+		
+		_trainingSize = _symDatesForTrainingML.size();
+		
+		System.out.println("training_size:" + _trainingSize + " ,parameters:"
+				+ parameters + ", Companies_match" + companiesMap.size());
+	}
+	
+	
 }
 
 

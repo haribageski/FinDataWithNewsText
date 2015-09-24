@@ -38,4 +38,10 @@ public class Sym_Year implements Comparable<Sym_Year>{
 			return this.get_sym().toString().compareTo(arg0.get_sym().toString());
 		return this.get_year().toString().compareTo(arg0.get_year().toString());
 	}
+	
+	@Override
+	public String toString()
+	{
+		return sym.toString() + " " + year.toString();
+	}
 }

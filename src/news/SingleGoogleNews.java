@@ -60,19 +60,20 @@ public class SingleGoogleNews {
 				System.out.println(allCompanyQuotes.keySet().contains(_dateOfNews));	//end of day price
 				System.out.println(allCompanyDividendYears.contains(prevYearOfNews));
 				*/
-				if(allCompanySUE_Years.contains(prevYearOfNews) && //All_company_SUE_years.contains(year_news)  &&
-						allCompanyFinFundamYears.contains(prevYearOfNews) && 
-						allCompanyQuotesYears.contains(prevYearOfNews) &&  allCompanyDividendYears.contains(prevYearOfNews) &&
+				if(allCompanySUE_Years.contains(_yearOfNews) && //All_company_SUE_years.contains(year_news)  &&
+						allCompanyFinFundamYears.contains(_yearOfNews) && 
+						allCompanyQuotesYears.contains(_yearOfNews) &&  allCompanyDividendYears.contains(_yearOfNews) &&
 						allCompanyQuotes.keySet().contains(_dateOfNews.get_prev_day_as_datemodif()) &&
 						allCompanyQuotes.keySet().contains(_dateOfNews))
 				{
 					System.out.println("Relevant news");
 					return true;
 				}
-					else
-					{
-						System.out.println("Irrelevant news");
-						return false;
-					}
+				
+				else
+				{
+					System.out.println("Irrelevant news");
+					return false;
+				}
 			}
 }

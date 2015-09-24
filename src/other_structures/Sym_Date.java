@@ -2,7 +2,6 @@ package other_structures;
 
 /**
  * 
- * @author Hari
  *
  * Simple class consisting of symbol : String and modified date : DateModif 
  */
@@ -30,5 +29,11 @@ public class Sym_Date implements Comparable<Sym_Date>{
 		if(this.get_sym().toString().compareTo(arg0.get_sym().toString())!=0)
 			return this.get_sym().toString().compareTo(arg0.get_sym().toString());
 		return this.get_Date_modif().get_date().compareTo(arg0.get_Date_modif().get_date());
+	}
+	
+	@Override
+	public String toString()
+	{
+		return sym.toString() + " " + D.toString();
 	}
 }

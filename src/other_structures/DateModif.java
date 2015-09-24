@@ -7,9 +7,6 @@ import java.util.Date;
 
 
 /**
- * 
- * @author Hari
- *
  * Included implementations for useful methods related to the structure Date
  */
 public class DateModif  implements Comparable<DateModif>
@@ -90,8 +87,8 @@ public class DateModif  implements Comparable<DateModif>
 	}
 
 	@Override
-	public int compareTo(DateModif dat) {
-		// TODO Auto-generated method stub
+	public int compareTo(DateModif dat) 
+	{
 		return this._d.compareTo(dat.get_date());
 	}
 	
@@ -104,10 +101,14 @@ public class DateModif  implements Comparable<DateModif>
 	};
 	
 	@Override
-   public int hashCode() 
+	public int hashCode() 
 	{
 		return _d.hashCode();
 	};
 	
-
+	@Override
+	public String toString()
+	{
+		return _d.toString();
+	}
 }

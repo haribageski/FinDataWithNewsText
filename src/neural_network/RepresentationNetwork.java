@@ -11,11 +11,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
+import news.AllCompaniesSentimentOfNews;
 import company.Company;
-
 import other_structures.DateModif;
+import other_structures.Sym_Date;
 
 public class RepresentationNetwork extends Matrix_operations
 {
@@ -44,17 +46,25 @@ public class RepresentationNetwork extends Matrix_operations
 	
 	
 	public RepresentationNetwork(
-				List<String> Sym_for_training_matching, List<DateModif> dates_for_training_matching,
-				Map<String, Company> companies_match, int training_size, int numOfParameters, Double[][] X_senti) throws FileNotFoundException, UnsupportedEncodingException 
+				Set<Sym_Date> symDatesForTrainingML, Map<String, Company> companies_match, 
+				int training_size, int numOfParameters) throws FileNotFoundException, UnsupportedEncodingException 
 	{
-		Double [][]Xs = new Double[numOfParameters-6][training_size];	//used to store financial parameters (without senti parameters)
-		Double []Y = new Double[training_size];	
-		int [] trainingSize = new int [1];
-		Training_X_Y_matrix.Create_X_Y_finnance_Matrix	(Sym_for_training_matching, dates_for_training_matching, 
-				companies_match, Xs, Y, trainingSize);
+		System.out.println("RepresentationNetwork. training_size:" + training_size);
 		
+		Double [][]Xs = new Double[numOfParameters-6][training_size];	//used to store financial parameters (without senti parameters)
+		Double []Y = new Double[training_size];
+		
+		int [] trainingSize = new int [1];
+		Training_X_Y_matrix.Create_X_Y_finnance_Matrix(symDatesForTrainingML, companies_match, Xs, Y, trainingSize);
+		
+		//erase empty columns of X
+		Double[][]XCorrected = new Double[Xs.length][trainingSize[0]];
+		for(int i = 0; i < Xs.length; i++)
+			for(int j = 0; j < trainingSize[0]; j++)
+				XCorrected[i][j] = Xs[i][j];
+		Xs = XCorrected;
 		System.out.println("Xs size: rows = " + Xs.length + ", columns = " + Xs[0].length); 
-	
+		training_size = Xs[0].length;
 		/*BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 		String username = null;
         try {
@@ -63,6 +73,13 @@ public class RepresentationNetwork extends Matrix_operations
             e.printStackTrace();
         } */
         
+		
+		Double[][] X_senti = new Double[6][trainingSize[0]];
+		X_senti = AllCompaniesSentimentOfNews.makeX_FromSentimentData(Training_X_Y_matrix.getSymDates());
+		System.out.println("RepresentationNetwork.X_senti size:" + X_senti.length + " x " + X_senti[0].length);
+		
+		
+		// TODO : append is incorrectly defined
 		Xs_training = append(Xs, X_senti);
 		
 		System.out.println("Xs_training:");
@@ -330,22 +347,40 @@ public class RepresentationNetwork extends Matrix_operations
 		return 1/(1+Math.pow(Math.E , -z));
 	}
 	
-	
-	public static Double[][] append(Double[][] doubles, Double[][] doubles2) 
+	/**
+	 * 
+	 * @param matrix1
+	 * @param matrix2
+	 * 
+	 * Append the second matrix beneath the first. The matrices are of dimension : dim(matrix1) = p x q and 
+	 * dim(matrix2) = p x r. The resulting matrix will be of dimension p x (q+r)
+	 * 
+	 * @return
+	 */
+	public static Double[][] append(Double[][] matrix1, Double[][] matrix2) 
 	{
-		Double[][] result = new Double[doubles.length + doubles2.length][];
-        System.arraycopy(doubles, 0, result, 0, doubles.length);
-        System.arraycopy(doubles2, 0, result, doubles.length, doubles2.length);
-        
-        /*System.out.println("Xs_fin size:");
+		System.out.println("RepresentationNetwork.append first matrix len 1st dim: " + matrix1.length + ",len 2nd dim: " + matrix1[0].length );
+		System.out.println("RepresentationNetwork.append second matrix len 1st dim: " + matrix2.length + ",len 2nd dim: " + matrix2[0].length );
+		
+		Double[][] result = new Double[matrix1.length + matrix2.length][matrix1[0].length];
+		
+		for(int i = 0; i < matrix1.length; i++)
+			for(int j = 0; j < matrix1[0].length; j++)
+				result[i][j] = matrix1[i][j];
+		
+		for(int i = 0; i < matrix2.length; i++)
+			for(int j = 0; j < matrix2[0].length; j++)
+				result[i + matrix1.length][j] = matrix2[i][j];
+		/*
+        System.out.println("Xs_fin size:");
         for(int i = 0; i<doubles.length; i++)
 		{
 			for(int j = 0; j<doubles[i].length; j++)
 				if(doubles[i][j] == null)
 					System.out.print("i=" +i + ",j=" +j);
 			System.out.println();
-		}*/
-        
+		}
+        */
         /*BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 		String username = null;
         try {

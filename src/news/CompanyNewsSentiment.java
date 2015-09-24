@@ -46,7 +46,7 @@ public class CompanyNewsSentiment
 		_pipeline = pipeln;
 		_filePathToTextNews = "D:\\my documents\\Senior_Project_datasets\\News\\google_news_" + symbol + ".txt";
 		_filePathToSentimentOfNews = "D:\\my documents\\Senior_Project_datasets\\News_Senti\\" + symbol + ".txt";
-		_outputPath = "D:\\my documents\\Senior_Project_datasets\\News_senti\\" + symbol + ".txt";
+		_outputPath = _filePathToSentimentOfNews;
 	}
 	
 	public CompanyNewsSentiment(String symbol, StanfordCoreNLP pipeln,
@@ -133,7 +133,6 @@ public class CompanyNewsSentiment
 				try {
 					date = new DateModif(fields[j]);
 				} catch (ParseException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 				
@@ -255,6 +254,8 @@ public class CompanyNewsSentiment
 		{
 			newsIsConsistentInDateWithFinParams = true;
 			date = new DateModif(Read_date.getTheColumn().get(i) );
+			
+			//TODO check if date is relevant
 			
 			int year = date.get_year_in_date();
 

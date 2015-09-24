@@ -33,6 +33,7 @@ public class Company
 	CompanyNewsSentiment News;
 	StanfordCoreNLP pipeline;
 	HashSet<Integer> _consistentYears;
+	Set<DateModif> _consistentDates;
 	//Set<Sym_Year> companySymYears ;
 	
 	public Company(String Symbol, StanfordCoreNLP pipeln) throws IOException, ParseException
@@ -147,6 +148,21 @@ public class Company
 		System.out.println("after findConsistentYearsFromFinancialData we get size of _consistentYears:" + _consistentYears.size());
 	}
 	
+	
+	public void  findConsistentDatesFromFinancialData()
+	{
+		_consistentDates = _compQuotes.get_quotes_map().keySet();
+		System.out.println("_consistentYears size after adding _compQuotes:" + _consistentYears.size());
+		
+		HashSet<DateModif> tempDates = new HashSet<DateModif>();
+		for(DateModif dateModif : _consistentDates)
+		{
+			if(_consistentYears.contains(dateModif.get_year_in_date()))
+				tempDates.add(dateModif);
+		}
+		_consistentDates = tempDates;
+	}
+	
 	@SuppressWarnings("unchecked")
 	/**
 	 * Filter inconsistent data in _compFinFundamPerYear, _compQuotes, _companySUE, _compDivid
@@ -158,6 +174,7 @@ public class Company
 		System.out.println("Company.filterInconsistentFinData()..." );
 		@SuppressWarnings({ "rawtypes" })
 		ArrayList companySymYears = new ArrayList<Sym_Year>(_compFinFundamPerYear.getAllCompanyROE().keySet());
+		ArrayList companySymDates;
 		
 		for(int i = 0;i < companySymYears.size(); i++)
 		{
@@ -176,10 +193,10 @@ public class Company
 				System.out.println("year consistent:" + year);*/
 		}
 		
-		companySymYears = new ArrayList<Basic_daily_fin_data> (_compQuotes.get_All_company_quotes());
-		for(int i = 0; i < companySymYears.size(); i++)
+		companySymDates = new ArrayList<Basic_daily_fin_data> (_compQuotes.get_All_company_quotes());
+		for(int i = 0; i < companySymDates.size(); i++)
 		{
-			Basic_daily_fin_data priceAtDate = (Basic_daily_fin_data) companySymYears.get(i);
+			Basic_daily_fin_data priceAtDate = (Basic_daily_fin_data) companySymDates.get(i);
 			Integer year = priceAtDate.get_date().get_year_in_date();
 			
 			if(!_consistentYears.contains(year))
@@ -191,10 +208,10 @@ public class Company
 				System.out.println("\n\n\ndate consistent:" + priceAtDate.get_date());*/
 		}
 		
-		companySymYears =  new ArrayList<Basic_daily_fin_data> ( _compDivid.get_All_company_dividends());
-		for(int i = 0;i < companySymYears.size(); i++)
+		companySymDates =  new ArrayList<Basic_daily_fin_data> ( _compDivid.get_All_company_dividends());
+		for(int i = 0;i < companySymDates.size(); i++)
 		{
-			Basic_daily_fin_data compDivid = (Basic_daily_fin_data) companySymYears.get(i);
+			Basic_daily_fin_data compDivid = (Basic_daily_fin_data) companySymDates.get(i);
 			Integer year = compDivid.get_date().get_year_in_date();
 			
 			if(!_consistentYears.contains(year))
@@ -207,10 +224,10 @@ public class Company
 				System.out.println("\n\n\ndate consistent:" + compDivid.get_date());*/
 		}
 		
-		companySymYears =  new ArrayList<Basic_daily_fin_data> ( _companySUE.get_All_company_SUE());
-		for(int i = 0;i < companySymYears.size(); i++)
+		companySymDates =  new ArrayList<Basic_daily_fin_data> ( _companySUE.get_All_company_SUE());
+		for(int i = 0;i < companySymDates.size(); i++)
 		{
-			Basic_daily_fin_data compSUE = (Basic_daily_fin_data) companySymYears.get(i);
+			Basic_daily_fin_data compSUE = (Basic_daily_fin_data) companySymDates.get(i);
 			Integer year = compSUE.get_date().get_year_in_date();
 			
 			if(!_consistentYears.contains(year))
@@ -276,25 +293,43 @@ public class Company
 		for(int i = 0; i<News.getAvgSentiPerDateTitle().values().size(); i++)
 			System.out.print(News.getAvgSentiPerDateTitle().values().toArray()[i].toString());
 	}
-
+	
+	
 	
 	/**
-	 * First find all the years for which there is a news.
+	 * First find all the dates for which there is a news.
 	 * Then find the intersection with the consistent years of Financial data.
 	 * Then erase Financial entries for which there is no News.
 	 */
-	public void makeConsistentNewsWithFinancialData()
+	public Set<DateModif> makeConsistentNewsWithFinancialData()
 	{
-		HashSet<Integer> yearsFromNews = new HashSet<Integer>();
-		for(DateModif dateModif : News.getAvgSentiPerDateTitle().keySet())
+		findConsistentDatesFromFinancialData();
+		Set<DateModif> datesFromNews = new HashSet<DateModif>();
+		Set<Integer> yearsFromNews = new HashSet<Integer>();
+		Set<DateModif> tempDatesFromNews = new HashSet<DateModif>();
+		
+		datesFromNews = News.getAvgSentiPerDateDescript().keySet();
+		//consider only news with date in which there are financial parameters available
+		for(DateModif dateModif : datesFromNews)
 		{
-			yearsFromNews.add(dateModif.get_year_in_date());
+			if(_consistentYears.contains(dateModif.get_year_in_date()))
+				yearsFromNews.add(dateModif.get_year_in_date());
+			if(_consistentDates.contains(dateModif))
+				tempDatesFromNews.add(dateModif);
 		}
+		
+		datesFromNews = tempDatesFromNews;
+		//keep only financial years for which year there is a news
 		if(!yearsFromNews.isEmpty())
 			_consistentYears.retainAll(yearsFromNews);
-		filterInconsistentFinDataInMapsOfParameters();
+		//keep only financial dates for which date there is a news
+		if(!datesFromNews.isEmpty())
+			_consistentDates.retainAll(datesFromNews);
 		
+		filterInconsistentFinDataInMapsOfParameters();
 		System.out.println("After makeConsistentNewsWithFinancialData() we get _consistentYears size:" + _consistentYears.size());
+		
+		return _consistentDates;
 	}
 	
 	//HashSet<Employee> Team = new HashSet<Employee>(); //may not use it at all since not enough data in Employee		TO DO

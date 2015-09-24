@@ -13,16 +13,16 @@ import java.util.Scanner;
 public class ReadUniqueSymFromFile 
 {
 	final static Charset ENCODING = StandardCharsets.UTF_8;
-	List<String> uniqueSymbols;
+	List<String> linesFromFile;
 	
-	public ReadUniqueSymFromFile(String unique_sym_path) throws IOException
+	public ReadUniqueSymFromFile(String pathToFile) throws IOException
 	{
-		uniqueSymbols = ReadFromFile.readFileLineByLine(unique_sym_path);
+		linesFromFile = ReadFromFile.readFileLineByLine(pathToFile);
 	}	
 	
-	public List<String> getUniqueSymbols()
+	public List<String> getLinesFromFile()
 	{
-		return uniqueSymbols;
+		return linesFromFile;
 	}
 	
 	
