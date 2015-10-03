@@ -11,7 +11,7 @@ import writing_data_to_file.WriteToFile;
 
 /*
  * Creates one HashSet of Strings for the unique Symbols that appear in all parameters, 
- * that is we find the intersection of the symbols 
+ * that is we find the intersection of the symbols. 
  */
 public class ReadAndWriteAllSym 
 {

@@ -8,18 +8,18 @@ package yearly_financial_parameters;
  * 
  * Consists of year: Integer, value: Double, symbol: String
  */
-public class basicYearlyFinData  
+public class BasicYearlyFinData  
 {
 	Integer _year;
 	Double _val;
 	String _sym;
 	
-	public basicYearlyFinData(String Sym, Double v) 
+	public BasicYearlyFinData(String Sym, Double v) 
 	{
 		_sym = Sym;
 		_val = v;
 	}
-	public basicYearlyFinData(String Sym, Double v, Integer y) 
+	public BasicYearlyFinData(String Sym, Double v, Integer y) 
 	{
 		_sym = Sym;
 		_val = v;
@@ -52,11 +52,11 @@ public class basicYearlyFinData
 	public boolean equals(Object obj) 
 	{
 		if(obj.getClass() == getClass())
-			return ((basicYearlyFinData)obj).getVal().equals(_val);
+			return ((BasicYearlyFinData)obj).getVal().equals(_val);
 		return false;
 	}
 	
-	public int compare(basicYearlyFinData c2) {
+	public int compare(BasicYearlyFinData c2) {
 		return this.getVal().compareTo(c2.getVal());
 	}
 

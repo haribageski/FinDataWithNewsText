@@ -10,12 +10,12 @@ import java.util.Map;
 import java.util.TreeSet;
 
 import other_structures.DateModif;
-import reading_data_from_file.ReadColumnWithIndexFromFile;
+import reading_data_from_file.ReadOneColumnFromFile;
 
 public class CompanyQuotes {
 	String Sym;
-	List<Basic_daily_fin_data> _allCompanyQuotes = new ArrayList<Basic_daily_fin_data>();
-	Basic_daily_fin_data _earliestQuote, _oldestQuote;
+	List<BasicDailyFinData> _allCompanyQuotes = new ArrayList<BasicDailyFinData>();
+	BasicDailyFinData _earliestQuote, _oldestQuote;
 	Map<Integer , Double> _avgPerYQuotesClosingPrice =  new HashMap<Integer, Double>();
 	Map<DateModif , Double> _quotesClosingPrice =  new HashMap<DateModif, Double>();
 	HashSet<Integer> _allCompanyQuotesYears = new HashSet<Integer>() ;
@@ -27,13 +27,13 @@ public class CompanyQuotes {
 		read_company_quotes();
 	}
 	
-	public void add_quote(Basic_daily_fin_data Q)
+	public void add_quote(BasicDailyFinData Q)
 	{
 		_allCompanyQuotes.add(Q) ;
-		_allCompanyQuotesYears.add(Q.get_date().get_year_in_date());
+		_allCompanyQuotesYears.add(Q.getDate().get_year_in_date());
 	}
 	
-	public void eraseQuote(Basic_daily_fin_data q)
+	public void eraseQuote(BasicDailyFinData q)
 	{
 		_allCompanyQuotes.remove(q);
 	}
@@ -43,7 +43,7 @@ public class CompanyQuotes {
 		return _quotesClosingPrice;
 	}
 	
-	public List <Basic_daily_fin_data> get_All_company_quotes()
+	public List <BasicDailyFinData> get_All_company_quotes()
 	{
 		return  _allCompanyQuotes ;
 	}
@@ -70,10 +70,10 @@ public class CompanyQuotes {
 		Double c_price;
 		
 		String file_path = _folderPath + Sym + ".txt";
-		ReadColumnWithIndexFromFile readDate = new ReadColumnWithIndexFromFile(file_path, 1);	
-		ReadColumnWithIndexFromFile readPrice = new ReadColumnWithIndexFromFile(file_path, 2);	
+		ReadOneColumnFromFile readDate = new ReadOneColumnFromFile(file_path, 1);	
+		ReadOneColumnFromFile readPrice = new ReadOneColumnFromFile(file_path, 2);	
 		
-		List<String> Normalized_close_price = (new ReadColumnWithIndexFromFile(file_path, 2)).getTheColumn();
+		List<String> Normalized_close_price = (new ReadOneColumnFromFile(file_path, 2)).getTheColumn();
 		/*List<String> Normalized_open_price = 
 				ReadColumnWithIndexFromFile.readOneColumnFromTabSeparColumns(file_path, 3);*/
 		
@@ -85,7 +85,7 @@ public class CompanyQuotes {
 			
 			if(c_price.equals(Double.NaN) || c_price.equals(null))
 				continue;
-			Basic_daily_fin_data priceAtDate = new Basic_daily_fin_data(Sym, c_price, date);
+			BasicDailyFinData priceAtDate = new BasicDailyFinData(Sym, c_price, date);
 			_allCompanyQuotes.add( priceAtDate );
 			_allCompanyQuotesYears.add(date.get_year_in_date());
 			_quotesClosingPrice.put(date, c_price);
@@ -103,9 +103,9 @@ public class CompanyQuotes {
 		
 		_avgPerYQuotesClosingPrice.clear();
 		
-		for(Basic_daily_fin_data Q : _allCompanyQuotes)
+		for(BasicDailyFinData Q : _allCompanyQuotes)
 		{
-			date = Q.get_date();
+			date = Q.getDate();
 			if(!year.equals(date.get_year_in_date()) )		//different year
 			{
 				if(!year.equals(0))	//not the first year first entry
@@ -128,22 +128,30 @@ public class CompanyQuotes {
 			}
 			
 			
-			c_price = Q.get_val();
-			total_c_price +=c_price;
+			c_price = Q.getVal();
+			total_c_price += c_price;
 			days_year++;
 			
 			if(Q.equals(_allCompanyQuotes.toArray()[0]))	//first year first qoute
 			{
-				_oldestQuote = new  Basic_daily_fin_data(Sym,  c_price);
-				_oldestQuote.set_date(date);
+				_oldestQuote = new  BasicDailyFinData(Sym,  c_price);
+				_oldestQuote.setDate(date);
 			}
 			
 
-			_earliestQuote = new Basic_daily_fin_data(Sym,  c_price);	//it will be reassigning till the very last
-			_earliestQuote.set_date(date);
+			_earliestQuote = new BasicDailyFinData(Sym,  c_price);	//it will be reassigning till the very last
+			_earliestQuote.setDate(date);
 			//System.out.println("Qoute for:" + Sym + " " + date + " " + o_price + " " + c_price);
 		}
-		System.out.println("set _avgPerYQuotesClosingPrice:" + total_c_price / (double)days_year);
-		_avgPerYQuotesClosingPrice.put(year, total_c_price / (double)days_year);	//for last year
+
+		if(days_year==0)
+		{
+			System.out.println("CompanyQuotes. set_parameters() : cannot find _avgPerYQuotesClosingPrice - div with 0");
+		}
+		else
+		{
+			System.out.println("set _avgPerYQuotesClosingPrice:" + total_c_price / (double)days_year);
+			_avgPerYQuotesClosingPrice.put(year, total_c_price / (double)days_year);	//for last year	
+		}
 	}
 }

@@ -9,14 +9,14 @@ import java.util.List;
 import java.util.Map;
 
 import other_structures.DateModif;
-import reading_data_from_file.ReadColumnWithIndexFromFile;
+import reading_data_from_file.ReadOneColumnFromFile;
 
 public class CompanySUE {
 	String Symbol;
-	Basic_daily_fin_data Oldest_SUE;
-	Basic_daily_fin_data Earliest_SUE;
+	BasicDailyFinData Oldest_SUE;
+	BasicDailyFinData Earliest_SUE;
 	Map<Integer,Double> avg_per_year_SUE =  new HashMap<Integer, Double>();		//TO DO
-	List<Basic_daily_fin_data> All_company_SUE = new ArrayList<Basic_daily_fin_data>();
+	List<BasicDailyFinData> All_company_SUE = new ArrayList<BasicDailyFinData>();
 	HashSet<Integer> All_company_SUE_years = new HashSet<Integer>();
 	String folder_path = "D:\\my documents\\Senior_Project_datasets\\Earning_surprises\\";
 	
@@ -26,13 +26,13 @@ public class CompanySUE {
 		read_company_SUE();
 	}
 	
-	public void add_SUE(Basic_daily_fin_data SUE)
+	public void add_SUE(BasicDailyFinData SUE)
 	{
 		All_company_SUE.add(SUE);
-		All_company_SUE_years.add(SUE.get_date().get_year_in_date());
+		All_company_SUE_years.add(SUE.getDate().get_year_in_date());
 	}
 	
-	public List<Basic_daily_fin_data> get_All_company_SUE()
+	public List<BasicDailyFinData> get_All_company_SUE()
 	{
 		return All_company_SUE;
 	}
@@ -42,7 +42,7 @@ public class CompanySUE {
 		return All_company_SUE_years;
 	}
 	
-	public Basic_daily_fin_data Get_Earliest_SUE()
+	public BasicDailyFinData Get_Earliest_SUE()
 	{
 		return Earliest_SUE;
 	}
@@ -52,7 +52,7 @@ public class CompanySUE {
 		return avg_per_year_SUE;
 	}
 	
-	public void eraseSUE(Basic_daily_fin_data SUE)
+	public void eraseSUE(BasicDailyFinData SUE)
 	{
 		All_company_SUE.remove(SUE) ;
 	}
@@ -69,10 +69,10 @@ public class CompanySUE {
 		Double sue;
 		
 		String file_path = folder_path + Symbol + ".txt";
-		ReadColumnWithIndexFromFile Read_date = new ReadColumnWithIndexFromFile(file_path, 1);
+		ReadOneColumnFromFile Read_date = new ReadOneColumnFromFile(file_path, 1);
 		
 		List<String> Normalized_SUE = 
-				(new ReadColumnWithIndexFromFile()).readOneColumnFromTabSeparColumns(file_path, 2);	//in percentage 
+				(new ReadOneColumnFromFile()).readOneColumnFromTabSeparColumns(file_path, 2);	//in percentage 
 		
 		for(int i = 0; i < Read_date.getTheColumn().size(); i++)
 		{
@@ -82,8 +82,8 @@ public class CompanySUE {
 			if(sue.equals(Double.NaN) || sue.equals(null))
 				continue;
 			
-			Basic_daily_fin_data Comp_SUE = new Basic_daily_fin_data(Symbol, sue);
-			Comp_SUE.set_date(date);
+			BasicDailyFinData Comp_SUE = new BasicDailyFinData(Symbol, sue);
+			Comp_SUE.setDate(date);
 			
 			All_company_SUE.add( Comp_SUE );
 			
@@ -102,10 +102,10 @@ public class CompanySUE {
 		
 		
 		
-		for(Basic_daily_fin_data S : All_company_SUE)
+		for(BasicDailyFinData S : All_company_SUE)
 		{
-			date = S.get_date();
-			sue = S.get_val();
+			date = S.getDate();
+			sue = S.getVal();
 			
 			if(!year.equals(date.get_year_in_date())) 		//different year
 			{
@@ -124,11 +124,11 @@ public class CompanySUE {
 
 			if(S.equals(All_company_SUE.toArray()[0]))
 			{
-				Oldest_SUE = new Basic_daily_fin_data(Symbol, sue);
-				Oldest_SUE.set_date(date);
+				Oldest_SUE = new BasicDailyFinData(Symbol, sue);
+				Oldest_SUE.setDate(date);
 			}
-			Earliest_SUE = new Basic_daily_fin_data(Symbol, sue); 			//it will be reassigning till the very last	
-			Earliest_SUE.set_date(date);
+			Earliest_SUE = new BasicDailyFinData(Symbol, sue); 			//it will be reassigning till the very last	
+			Earliest_SUE.setDate(date);
 		}
 		
 		//for the last year we need to include some invariants that are waiting to be inserted when new year comes, which won't for the last year

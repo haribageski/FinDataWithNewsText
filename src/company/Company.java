@@ -9,7 +9,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import daily_financial_parameters.Basic_daily_fin_data;
+import daily_financial_parameters.BasicDailyFinData;
 import daily_financial_parameters.CompanyDividend;
 import daily_financial_parameters.CompanyQuotes;
 import daily_financial_parameters.CompanySUE;
@@ -17,8 +17,8 @@ import news.CompanyNewsSentiment;
 import other_structures.DateModif;
 import other_structures.Sym_Date;
 import other_structures.Sym_Year;
-import yearly_financial_parameters.basicYearlyFinData;
-import yearly_financial_parameters.companyYearlyFinFundamentals;
+import yearly_financial_parameters.BasicYearlyFinData;
+import yearly_financial_parameters.CompanyYearlyFinFundamentals;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 
 public class Company 
@@ -28,7 +28,7 @@ public class Company
 	
 	CompanyQuotes _compQuotes;
 	CompanyDividend _compDivid ;
-	companyYearlyFinFundamentals _compFinFundamPerYear ;
+	CompanyYearlyFinFundamentals _compFinFundamPerYear ;
 	CompanySUE _companySUE;
 	CompanyNewsSentiment News;
 	StanfordCoreNLP pipeline;
@@ -43,7 +43,7 @@ public class Company
 		_compQuotes = new CompanyQuotes(Sym);
 		_compDivid = new CompanyDividend(Sym);
 		_companySUE = new CompanySUE(Sym);
-		_compFinFundamPerYear = new companyYearlyFinFundamentals(Sym);
+		_compFinFundamPerYear = new CompanyYearlyFinFundamentals(Sym);
 		News = new CompanyNewsSentiment(Sym, pipeline);
 	}
 	public void addConsistentYear (Integer year)
@@ -51,36 +51,71 @@ public class Company
 		_consistentYears.add(year);
 	}
 	
-	public void add_quote(Basic_daily_fin_data Q)
+	public void add_quote(BasicDailyFinData Q)
 	{
+		if(Q.getVal().isNaN())
+		{
+			System.out.println("add_quote failes since NaN val");
+			return;
+		}
 		_compQuotes.add_quote(Q);
 	}
-	public void add_dividend(Basic_daily_fin_data Divi)
+	public void add_dividend(BasicDailyFinData Divi)
 	{
+		if(Divi.getVal().isNaN())
+		{
+			System.out.println("add_dividend failes since NaN val");
+			return;
+		}
 		_compDivid.add_dividend( Divi);
 	}
-	public void add_SUE(Basic_daily_fin_data SU)
+	public void add_SUE(BasicDailyFinData SU)
 	{
+		if(SU.getVal().isNaN())
+		{
+			System.out.println("add_SUE failes since NaN val");
+			return;
+		}
 		_companySUE.add_SUE(SU);
 	}
 	
-	public void add_ROE(Sym_Year S_D,  basicYearlyFinData Fin_Unit)
+	public void add_ROE(Sym_Year S_D,  BasicYearlyFinData Fin_Unit)
 	{
+		if(Fin_Unit.getVal().isNaN())
+		{
+			System.out.println("addROE failes since NaN val");
+			return;
+		}
 		_compFinFundamPerYear.addROE(S_D, Fin_Unit);
 	}
 	
-	public void add_share(Sym_Year S_D,  basicYearlyFinData Fin_Unit)
+	public void add_share(Sym_Year S_D,  BasicYearlyFinData Fin_Unit)
 	{
+		if(Fin_Unit.getVal().isNaN())
+		{
+			System.out.println("addShare failes since NaN val");
+			return;
+		}
 		_compFinFundamPerYear.addShare(S_D, Fin_Unit);
 	}
 	
-	public void add_book_val(Sym_Year S_D,  basicYearlyFinData Fin_Unit)
+	public void add_book_val(Sym_Year S_D,  BasicYearlyFinData Fin_Unit)
 	{
+		if(Fin_Unit.getVal().isNaN())
+		{
+			System.out.println("addBookVal failes since NaN val");
+			return;
+		}
 		_compFinFundamPerYear.addBookVal(S_D, Fin_Unit);
 	}
 	
-	public void add_accrual(Sym_Year S_D,  basicYearlyFinData Fin_Unit)
+	public void add_accrual(Sym_Year S_D,  BasicYearlyFinData Fin_Unit)
 	{
+		if(Fin_Unit.getVal().isNaN())
+		{
+			System.out.println("addAccrual failes since NaN val");
+			return;
+		}
 		_compFinFundamPerYear.addAccrual(S_D, Fin_Unit);  
 	}
 	
@@ -93,7 +128,7 @@ public class Company
 	{
 		return _compDivid;
 	}
-	public companyYearlyFinFundamentals get_Fin_fundamentals()
+	public CompanyYearlyFinFundamentals get_Fin_fundamentals()
 	{
 		return _compFinFundamPerYear;
 	}
@@ -193,11 +228,11 @@ public class Company
 				System.out.println("year consistent:" + year);*/
 		}
 		
-		companySymDates = new ArrayList<Basic_daily_fin_data> (_compQuotes.get_All_company_quotes());
+		companySymDates = new ArrayList<BasicDailyFinData> (_compQuotes.get_All_company_quotes());
 		for(int i = 0; i < companySymDates.size(); i++)
 		{
-			Basic_daily_fin_data priceAtDate = (Basic_daily_fin_data) companySymDates.get(i);
-			Integer year = priceAtDate.get_date().get_year_in_date();
+			BasicDailyFinData priceAtDate = (BasicDailyFinData) companySymDates.get(i);
+			Integer year = priceAtDate.getDate().get_year_in_date();
 			
 			if(!_consistentYears.contains(year))
 			{
@@ -208,11 +243,11 @@ public class Company
 				System.out.println("\n\n\ndate consistent:" + priceAtDate.get_date());*/
 		}
 		
-		companySymDates =  new ArrayList<Basic_daily_fin_data> ( _compDivid.get_All_company_dividends());
+		companySymDates =  new ArrayList<BasicDailyFinData> ( _compDivid.get_All_company_dividends());
 		for(int i = 0;i < companySymDates.size(); i++)
 		{
-			Basic_daily_fin_data compDivid = (Basic_daily_fin_data) companySymDates.get(i);
-			Integer year = compDivid.get_date().get_year_in_date();
+			BasicDailyFinData compDivid = (BasicDailyFinData) companySymDates.get(i);
+			Integer year = compDivid.getDate().get_year_in_date();
 			
 			if(!_consistentYears.contains(year))
 			{
@@ -224,11 +259,11 @@ public class Company
 				System.out.println("\n\n\ndate consistent:" + compDivid.get_date());*/
 		}
 		
-		companySymDates =  new ArrayList<Basic_daily_fin_data> ( _companySUE.get_All_company_SUE());
+		companySymDates =  new ArrayList<BasicDailyFinData> ( _companySUE.get_All_company_SUE());
 		for(int i = 0;i < companySymDates.size(); i++)
 		{
-			Basic_daily_fin_data compSUE = (Basic_daily_fin_data) companySymDates.get(i);
-			Integer year = compSUE.get_date().get_year_in_date();
+			BasicDailyFinData compSUE = (BasicDailyFinData) companySymDates.get(i);
+			Integer year = compSUE.getDate().get_year_in_date();
 			
 			if(!_consistentYears.contains(year))
 			{
@@ -271,17 +306,10 @@ public class Company
 		System.out.println("readOrEvalSentiOfNews:");
 		//read_parameters();	//CHECK THIS AGAIN!!!!!!!!!!!
 		
-		//printing
-		/*System.out.println (Fin_fundamentals_per_year.Get_all_company_fin_fundam_dates().size() + " " + 
-				Comp_Quotes.Get_all_company_quotes_years().size() + " "  + Comp_Divid.Get_oldest_dividend().Get_date() + " " +
-				SUE.GET_all_company_SUE_years().size() + " ");
-		*/
-		
-		
 		//First try to read sentiment from file to avoid costly sentiment evaluation
 		boolean sentiFileExists = News.readSentiFile();
 		
-		if(!sentiFileExists)//finds sentiments and sets the value of avg_senti_per_date  and  total_news
+		if(!sentiFileExists)	//finds sentiments and sets the value of avg_senti_per_date  and  total_news
 			News.evalSentiForAllNewsOfACompany(
 				_companySUE.GET_all_company_SUE_years(), 
 				_compFinFundamPerYear.getAllCompanyFinFundamYears(), 

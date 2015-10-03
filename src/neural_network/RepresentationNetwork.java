@@ -8,36 +8,39 @@ import java.util.Set;
 
 import news.AllCompaniesSentimentOfNews;
 import other_structures.Sym_Date;
-
 import company.Company;
 
 public class RepresentationNetwork extends Matrix_operations
 {
-	static Integer Layers = 4;		//two hidden layers
+	static int Layers = 3;		//two hidden layers
 	static int parameters;
 	// List <Integer> s_l = new ArrayList<Integer>();
-	Integer K = 1;  //output units
-	Integer m;		//size of training set
-	static Double lambda = 0.00000001, EPSILON = Math.pow(10, -4);	//possibly set it differently
+	static int K = 2;  //output units
+	static int m;		//size of training set
+	static Double lambda = 0.1, EPSILON = 0.12;	//Math.pow(10, -4); possibly set it differently
 	
 	static Double[][] Xs_training;
-	static Double[] Ys_training;
+	static Double [][] Ys_training;
 	
-	static Double[][][] Thetas;		//it's 1-indexed ,i.e. Theta1 = Thetas[1]
-	static Double[][][] a_l;
+	static Double[][] Theta_1, Theta_2;		//it's 1-indexed ,i.e. Theta1 = Thetas[1]
+	static Double[][] a_1, a_2, a_3;
+	static Double[][] z_2, z_3;
 	static Integer[] s_l = new Integer[5];
 	
 	static Double[][] h_Theta_all_a4;
 	
-	static Double[][][] delta_errors;	//first row irrelevant
+	static Double[][] delta_errors_2, delta_errors_3;	
 	
-	static Double[][][] Deltas;
+	static Double[][] Delta_1, Delta_2;
 
-	static Double[][][] Ds;	// Ds = d/d Theta of J(Theta)
+	static Double[][] Ds_1, Ds_2;	// Ds = d/d Theta of J(Theta)
 	
 	public Double[][] getTheta(int i)
 	{
-		return Thetas[i];
+		if(i==1)
+			return Theta_1;
+		else
+			return Theta_2;
 	}
 	
 	public RepresentationNetwork(
@@ -47,7 +50,7 @@ public class RepresentationNetwork extends Matrix_operations
 		System.out.println("RepresentationNetwork. training_size:" + training_size);
 		
 		Double [][]Xs = new Double[numOfParameters-6][training_size];	//used to store financial parameters (without senti parameters)
-		Double []Y = new Double[training_size];
+		Double [][] Y = new Double[training_size][K];
 		
 		int [] trainingSize = new int [1];
 		Training_X_Y_matrix.Create_X_Y_finnance_Matrix(symDatesForTrainingML, companies_match, Xs, Y, trainingSize);
@@ -56,17 +59,27 @@ public class RepresentationNetwork extends Matrix_operations
 		Double[][]XCorrected = new Double[Xs.length][trainingSize[0]];
 		for(int i = 0; i < Xs.length; i++)
 			for(int j = 0; j < trainingSize[0]; j++)
+			{
 				XCorrected[i][j] = Xs[i][j];
+			}
 		Xs = XCorrected;
+		
 		System.out.println("Xs size: rows = " + Xs.length + ", columns = " + Xs[0].length); 
+		
 		training_size = Xs[0].length;
-		/*BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-		String username = null;
-        try {
-            username = reader.readLine();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } */
+		
+		Double [][] YCorrected = new Double[training_size][K];
+		for(int i = 0; i < Y.length; i++)
+			for(int j = 0; j < K; j++)
+			{
+				if(Y[i][j] == null )
+				{
+					continue;
+				}
+				YCorrected[i][j] = Y[i][j];
+			}
+		Y = YCorrected;
+		System.out.println("Ys size: rows = " + Y.length ); 
         
 		
 		Double[][] X_senti = new Double[6][trainingSize[0]];
@@ -97,7 +110,7 @@ public class RepresentationNetwork extends Matrix_operations
 		writer.println();
 		
 		System.out.println("Xs:" + Xs_training.length + ",num of parameters:"+ numOfParameters+ ",training_size:"+ training_size);
-		Xs_training = add_ones_as_first(Xs_training, numOfParameters, training_size);
+		Xs_training = appendRowOfOnes(Xs_training, numOfParameters, training_size);
 		Ys_training = Y;
 		
 		initializeValues(trainingSize[0],  numOfParameters );		//minus 1 because we use the last column for evaluation
@@ -112,77 +125,107 @@ public class RepresentationNetwork extends Matrix_operations
 		parameters = numOfParameters;
 		Double random;
 		
-		s_l[1]= s_l[2] = s_l[3] = parameters;
-		s_l[4] = 1;
+		s_l[1]= s_l[2] = parameters;
+		s_l[3] = K;
 		
-		Thetas = new Double[Layers][parameters][parameters+1];	
-		a_l = new Double[Layers+1][parameters+1][m];
+		Theta_1 = new Double[s_l[2]][s_l[1] + 1];	
+		Theta_2 = new Double[s_l[3]][s_l[2] + 1];	
 		
-		h_Theta_all_a4 = new Double[1][m];
+		a_1 = new Double[s_l[1] + 1][m];
+		a_2 = new Double[s_l[2] + 1][m];
+		a_3 = new Double[s_l[3] ][m];
 		
-		delta_errors = new Double[Layers+1][parameters+1][m];	//first row irrelevant
+		z_2 = new Double[s_l[2]][m];
+		z_3 = new Double[s_l[3]][m];
 		
-		Deltas = new Double[Layers][parameters][parameters +1];
-
-		Ds = new Double[Layers][parameters][parameters +1];	
+		h_Theta_all_a4 = new Double[s_l[3]][m];
+		
+		delta_errors_3 = new Double[s_l[3]][m];	
+		delta_errors_2 = new Double[s_l[2] + 1][m];	  //first row irrelevant, remove it
+		//no delta_1 since there is no error in the given X matrix
+		
+		Delta_1 = new Double[s_l[2]][s_l[1] + 1];
+		Delta_2 = new Double[s_l[3]][s_l[2] + 1];
+		
+		Ds_1 = new Double[s_l[2]][s_l[1] + 1];	
+		Ds_2 = new Double[s_l[3]][s_l[2] + 1];	
 		
 		for(int l=1; l<Layers ; l++)
 		{
-			for(int i=0; i< parameters; i++)
-				for(int j=0; j< parameters+1; j++)
+			for(int i = 0; i < s_l[l+1]; i++)
+				for(int j = 0; j < s_l[l]+1; j++)
 				{	
-					random = Math.random() * EPSILON - EPSILON;
-					Thetas[l][i][j] = random;
-					Deltas[l][i][j] = 0.0;
+					random = Math.random() * (2 * EPSILON) - EPSILON;
+					System.out.println("random:" + random);
+					if(l == 1)
+					{
+						Theta_1[i][j] = random;
+						Delta_1[i][j] = 0.0;
+					}
+					else
+					{
+						Theta_2[i][j] = random;
+						Delta_2[i][j] = 0.0;
+					}
 				}	
 		}
 		
 	}
 	
 
-	public Double makePrediction(Double [] X)
+	public Double[][] makePrediction(Double [][] X, int crossValidatSize)
 	{
-		for(int i=0; i< X.length; i++)
-		{
-			System.out.print(X[i] + " ");
-		}
-		System.out.println();
-		parameters = 16;
-		//System.out.println("X.length:" + X.length + ", Layers:" + Layers + ", parameters:" + parameters);
+		System.out.println("Cross validation matrix:");
+		chechForNaN(X);
 		
-		Double [][]a_l = new Double[Layers+1][parameters+1];
-		a_l[1] = add_ones_as_first(X);
-		//System.out.println("a_l[1]:" + a_l[1].length);
-		Double[] Z_2 = new Double[parameters];
-		Z_2 = matrix_product(Thetas[1], a_l[1] , parameters, parameters+1);
+		System.out.println("Theta 1 matrix:");
+		chechForNaN(Theta_1);
 		
-		//System.out.println("a_l[2][i]");
-		for(int i=0; i< parameters; i++)
-		{
-			a_l[2][i] = gFunc (Z_2[i]);
-			//System.out.println("a_l[2]:" + a_l[2][i] + " ");
-		}
-		a_l[2] = add_ones_as_first(a_l[2] );
+		System.out.println("Theta 2 matrix:");
+		chechForNaN(Theta_2);
 		
-		Double[] Z_3 = new Double[parameters];
-		Z_3 = matrix_product(Thetas[2], a_l[2] , parameters, parameters+1);
-		//System.out.println("a_l[3][i]");
-		for(int i=0; i< parameters; i++)
-		{
-			a_l[3][i] = gFunc (Z_3[i]);
-			//System.out.println("a_l[3]:" + a_l[3][i] + " ");
-		}
-		a_l[3] = add_ones_as_first(a_l[3] );
+		//parameters = 16;
 		
+		a_1 = new Double[parameters ][crossValidatSize];
+		a_1 = transposeMatrix(X);
+		a_1 = appendRowOfOnes(a_1 , parameters , crossValidatSize);	//becomes of size params+1 x m
+
+		z_2 = new Double[parameters][crossValidatSize];
+		z_2 = matrix_product(Theta_1, a_1 , s_l[2], s_l[1] + 1, crossValidatSize);
 		
-		Double Z_4 = 0.0;
-		Z_4 = matrix_product(Thetas[3], a_l[3] , 1, parameters+1)[0];
+		System.out.println("X  matrix in all_forward_propagation:");
+		chechForNaN(X);
 		
-		//System.out.println(g_func (Z_4));
-		h_Theta_all_a4[0][0] = gFunc (Z_4);
-		//System.out.println("h_Theta_all_a4[0][0]:" + h_Theta_all_a4[0][0]);
-		return  h_Theta_all_a4[0][0];
+		a_2 = new Double[parameters+1][crossValidatSize];
+		for(int i = 0; i < s_l[2]; i++)
+			for(int j = 0; j < crossValidatSize; j++)
+				a_2[i][j] = gFunc (z_2[i][j]);
+		a_2 = appendRowOfOnes(a_2 , s_l[2] , crossValidatSize);
+		
+		System.out.println("a_2 matrix:");
+		chechForNaN(a_2);
+		
+		z_3 = new Double[s_l[3]][crossValidatSize];
+		z_3 = matrix_product(Theta_2, a_2, s_l[3] , s_l[2] + 1, crossValidatSize);
+		
+		System.out.println("z_3 matrix:");
+		chechForNaN(z_3);
+		
+		h_Theta_all_a4 = new Double[s_l[3]][crossValidatSize];
+		for(int i = 0; i < s_l[3]; i++)
+			for(int j = 0; j < crossValidatSize; j++)
+			{
+				h_Theta_all_a4[i][j] = gFunc(z_3[i][j]);
+				System.out.println("h_Theta_all_a4:" + h_Theta_all_a4[i][j]);
+			}
+		
+		return  transposeMatrix(h_Theta_all_a4);
 	}
+	
+	/*public Double getPredictedVal(int index)
+	{
+		return h_Theta_all_a4[index];
+	}*/
 
 
 	/*
@@ -190,134 +233,281 @@ public class RepresentationNetwork extends Matrix_operations
 	 */
 	public void Learn()	
 	{
-		all_forward_propagation();
+		Double prevCostFunctionJ = 100000.0;
+		allForwardPropagation();
 		do 
 		{
-			all_forward_propagation();
+			prevCostFunctionJ = costFunctionJ();
+			allForwardPropagation();
 			all_Backpropagation();
-			update_Theta();
-			System.out.println(costFunctionJ());
-		} while(costFunctionJ()>0);
+			System.out.println("prevCostFunctionJ:" + prevCostFunctionJ);
+			updateTheta();
+			System.out.println("costFunctionJ:" + costFunctionJ());
+		} while(costFunctionJ() <= prevCostFunctionJ);
+		
+		System.out.println("Theta 1 matrix:");
+		chechForNaN(Theta_1);
+		
+		System.out.println("Theta 2 matrix:");
+		chechForNaN(Theta_2);
+		
 	}
 
-	void update_Theta()
+	void updateTheta()
 	{
 		for(int l=1; l<Layers -1; l++)
-			for(int i=0; i< parameters; i++)
-				for(int j=0; j< parameters+1; j++)
-					Thetas[l][i][j] -= lambda*Ds[l][i][j];
-		//Theta_3
-		for(int j=0; j< parameters+1; j++)
-				Thetas[Layers -1][0][j] -= lambda*Ds[Layers -1][0][j];
+			for(int i=0; i < s_l[l+1]; i++)
+				for(int j=0; j < s_l[l]+1; j++)
+				{
+					if(l == 1)
+						Theta_1[i][j] -= lambda * Ds_1[i][j];
+					else
+						Theta_2[i][j] -= lambda * Ds_2[i][j];
+				}
+		
+		System.out.println("Ds 1  updated matrix:");
+		chechForNaN(Ds_1);
+		
+		System.out.println("Thetas 1  updated matrix:");
+		chechForNaN(Theta_1);
 	}
 	
-	void all_forward_propagation ()
+	public void allForwardPropagation ()
 	{
-		a_l[1] = Xs_training;
-		Double[][] z_2 = new Double[parameters][m];
+		a_1 = Xs_training;
+		a_1 = appendRowOfOnes(a_1 , parameters , m);	//becomes of size params+1 x m
 
-		z_2 = matrix_product(Thetas[1], Xs_training , parameters, parameters+1, m);
-		for(int i=0; i< parameters; i++)
-			for(int j=0; j< m; j++)
-				a_l[2][i][j] = gFunc (z_2[i][j]);
-		a_l[2] = add_ones_as_first(a_l[2] , parameters , m);
+		z_2 = matrix_product(Theta_1, a_1 , s_l[2], s_l[1] + 1, m);
 		
-		Double[][] z_3 = new Double[parameters][m];
-		z_3 = matrix_product(Thetas[2], a_l[2] , parameters, parameters+1, m);
-		for(int i=0; i< parameters; i++)
-			for(int j=0; j< m; j++)
-				a_l[3][i][j] = gFunc (z_3[i][j]);
-		a_l[3] = add_ones_as_first(a_l[3] , parameters , m);
+		System.out.println("Xs_training  matrix in all_forward_propagation:");
+		chechForNaN(Xs_training);
 		
-		Double[][] z_4 = new Double[1][m];
-		z_4 = matrix_product(Thetas[3], a_l[3] , 1, parameters+1, m);
-		for(int j=0; j< m; j++)
-			h_Theta_all_a4[0][j] = gFunc (z_4[0][j]);
-		a_l[4][0] = h_Theta_all_a4[0];
+		for(int i=0; i< s_l[2]; i++)
+			for(int j=0; j< m; j++)
+				a_2[i][j] = gFunc (z_2[i][j]);
+		a_2 = appendRowOfOnes(a_2 , s_l[2] , m);
+		
+		System.out.println("a_2 matrix:");
+		chechForNaN(a_2);
+		
+		z_3 = matrix_product(Theta_2, a_2, s_l[3] , s_l[2] + 1, m);
+		
+		System.out.println("z_3 matrix:");
+		chechForNaN(z_3);
+		
+		for(int i = 0; i < s_l[3]; i++)
+			for(int j = 0; j < m; j++)
+				h_Theta_all_a4[i][j] = gFunc(z_3[i][j]);
+		
+		a_3 = h_Theta_all_a4;
 	}
 	
 	
 	void all_Backpropagation()
 	{
-		for(int j=0; j<m; j++)
-			delta_errors[4][0][j] = h_Theta_all_a4[0][j] - Ys_training[j];
-			
-		delta_errors[3] = 
-					dot_product(  
-							matrix_product( transposeMatrix(Thetas[3]),delta_errors[4], parameters+1,1, m) , 
-							dot_product(a_l[3], vector_dot_minus(1.0 , a_l[3], parameters+1 ,m) , parameters+1,m)
-							, parameters+1	,m			
-								);
+		System.out.println("h_Theta_all_a4 matrix:");
+		chechForNaN(h_Theta_all_a4);
 		
-		delta_errors[3] = delete_first_raw(delta_errors[3], parameters+1 , m);
-		
-		delta_errors[2] = 
-				dot_product(  
-						matrix_product( transposeMatrix(Thetas[2]),delta_errors[3], parameters+1, parameters, m) , 
-						dot_product(a_l[2], vector_dot_minus(1.0 , a_l[2], parameters+1 ,m) , parameters+1,m)
-						, parameters+1	,m			
-							);
-		delta_errors[2] = delete_first_raw(delta_errors[2], parameters+1 , m);
-		
-		
-		for(int l=1; l<Layers -1 ; l++)		//Theta_3 is of different dimension
+		System.out.println("all_backwards().Y matrix:");
+		for(int i = 0; i < Ys_training.length; i++)
 		{
-			Deltas[l] = dot_sum(Deltas[l],
-								matrix_product (delta_errors[l+1], transposeMatrix(a_l[l]) , parameters, m, parameters+1)
-								, parameters, parameters+1);
+			if(Ys_training[i] == null)
+				System.out.println("index:" + 0 + "x" + i + " is null");
+			/*else
+				if(Ys_training[i].isNaN())
+					System.out.println("index:" + 0 + "x" + i + " is NaN");
+					*/
 		}
 		
-		//for Theta_3 the adjusting factor
-		Deltas[Layers-1] = dot_sum(Deltas[Layers-1],
-				matrix_product (delta_errors[Layers], transposeMatrix(a_l[Layers-1]) , 1, m, parameters+1)
-				, 1, parameters+1);
 		
+		for(int i = 0; i < m; i++)
+			for(int j = 0; j < K; j++)
+			delta_errors_3[j][i] = h_Theta_all_a4[j][i] - Double.parseDouble(Ys_training[i][j].toString());
+		
+		delta_errors_2 = 
+					dot_product(  
+							matrix_product( transposeMatrix(Theta_2),delta_errors_3, s_l[2] + 1 , s_l[3], m) , 
+							dot_product(a_2, vector_dot_minus(1.0 , a_2, s_l[2] + 1 , m) , s_l[2] + 1 , m)
+							, s_l[2] + 1 ,m	);
+		
+		delta_errors_2 = delete_first_raw(delta_errors_2, s_l[2] + 1 , m);
+		
+		
+		for(int l = 1; l < Layers - 1 ; l++)		//Theta_3 is of different dimension
+		{
+			if(l == 1)
+				Delta_1 = dot_sum(Delta_1,
+						matrix_product (delta_errors_2, transposeMatrix(a_1) , s_l[2], m, s_l[1] + 1)
+						, s_l[2], s_l[1] + 1);
+			else
+				Delta_2 = dot_sum(Delta_2,
+						matrix_product (delta_errors_3, transposeMatrix(a_2) , s_l[3], m, s_l[2] + 1)
+						, s_l[3], s_l[2] + 1);
+		}
+		
+		
+		Double[][][] approximation = gradApprox();
 		for(int l=1; l< Layers - 1; l++)	//Theta_3 is of different dimension
-			for(int i=0; i< parameters; i++)
-				for(int j=0; j< parameters+1; j++)
+			for(int i=0; i < s_l[l+1]; i++)
+				for(int j=0; j < s_l[l]+1; j++)
 				{
-					Ds[l][i][j] = Deltas[l][i][j]/m ;
-					if(j!=0)
-						Ds[l][i][j] +=  lambda * Thetas[l][i][j];
+					if(l == 1)
+					{
+						Ds_1[i][j] = Delta_1[i][j]/m ;
+						if(j!=0)
+							Ds_1[i][j] +=  lambda * Theta_1[i][j];
+						
+						System.out.println("Ds with index:" + l + "x" + i + "x" + j + " = " + Ds_1[i][j] + 
+								", and the approximation is:" + approximation[l][i][j]);	
+					}
+					else
+					{
+						Ds_2[i][j] = Delta_2[i][j]/m ;
+						if(j!=0)
+							Ds_2[i][j] +=  lambda * Theta_1[i][j];
+						
+						System.out.println("Ds with index:" + l + "x" + i + "x" + j + " = " + Ds_2[i][j] + 
+								", and the approximation is:" + approximation[l][i][j]);	
+					}
+								
 				}
-		
-		//Theta_3 adjusting factor
-			for(int j=0; j< parameters+1; j++)
-			{
-				Ds[Layers-1][0][j] = Deltas[Layers-1][0][j]/m ;
-				if(j!=0)
-					Ds[Layers-1][0][j] +=  lambda * Thetas[Layers-1][0][j];
-			}
 	}
 	
 	
-	
-	
+
 	/**
 	 * We add second summand multiplied with very small parameter lamda to avoid overfitting.
 	 * @return
 	 */
-	Double costFunctionJ()
+	public Double costFunctionJ()
 	{
 		Double Current_Sum = 0.0 , Second_sum = 0.0;
-		for(int i=0; i<m ; i++)
-		{
-			Current_Sum -= (Ys_training[i]* Math.log(h_Theta_all_a4[0][i]) + 
-					(1-Ys_training[i]) * Math.log(1-h_Theta_all_a4[0][i]));
-			Current_Sum /=m;
-		}
-		for(int l=1; l<= Layers-1 ; l++)
-			for(int i=0; i< s_l[l] ; i++)
-				for(int j=0; j< s_l[l+1]; j++ )
+		for(int i = 0; i < m ; i++)
+			for(int j = 0; j < K; j++)
+			{
+				//Current_Sum += Math.pow(Ys_training[i][j] - h_Theta_all_a4[j][i] , 2);
+				Current_Sum -= (Ys_training[i][j]* Math.log(h_Theta_all_a4[j][i]) + (1-Ys_training[i][j]) * Math.log(1-h_Theta_all_a4[j][i]));
+				//System.out.println("index:" + i + ",predicted val:" + h_Theta_all_a4[0][i] + ", and true value:" + Ys_training[i]);
+			}
+		Current_Sum /= m;
+		for(int l = 1; l <= Layers-1 ; l++)
+			for(int i = 0; i < s_l[l] ; i++)
+				for(int j = 0; j < s_l[l+1]; j++ )
 				{
-					Second_sum+= Math.pow(Thetas[l][j][i] , 2);
+					if(l == 1)
+						Second_sum += Math.pow(Theta_1[j][i] , 2);
+					else
+						Second_sum += Math.pow(Theta_2[j][i] , 2);
 				}
 		
-		Current_Sum += lambda*Second_sum / (2*m);
+		Current_Sum += lambda * Second_sum / (2 * m);
 		return Current_Sum;
 	}
 	
 	
+	
+	public Double[][][] gradApprox()
+	{
+		Double[][][] gradApproximation = new Double [Layers][parameters][parameters+1];	
+		for(int l = 1; l <= Layers-1 ; l++)
+		{
+			System.out.println("gradApproximation" + l);
+			for(int i = 0; i < s_l[l] ; i++)
+			{
+				for(int j = 0; j < s_l[l+1]; j++ )
+				{
+					gradApproximation[l][i][j] = (costFunctionModified(l,i,j, true).doubleValue() - costFunctionModified(l,i,j, false).doubleValue() ) / (2 * EPSILON); 
+					System.out.print(gradApproximation[l][i][j] + " ");
+				}
+				System.out.println();
+			}
+		}
+		return gradApproximation;
+	}
+	
+	/**
+	 * 
+	 * @param index - it tells us that we want to add or substract EPSILON to Theta_index
+	 * @param plus_minus - if true we add EPSILON to Theta_index, otherwise we substract
+	 * @return cost function for all Thetas same but the index-th 
+	 */
+	public Double costFunctionModified(int index1, int index2, int index3, boolean plus_minus)
+	{
+		Double Current_Sum = 0.0 , Second_sum = 0.0;
+		for(int i = 0; i < m ; i++)
+			for(int j = 0; j < K ; j++)
+		{
+			Current_Sum -= (Double.parseDouble(Ys_training[i][j].toString())* Math.log(h_Theta_all_a4[j][i]) + (1-Double.parseDouble(Ys_training[i][j].toString())) * Math.log(1-h_Theta_all_a4[j][i]));
+			//System.out.println("index:" + i + ",predicted val:" + h_Theta_all_a4[0][i] + ", and true value:" + Ys_training[i]);
+		}
+		Current_Sum /= m;
+		for(int l = 1; l <= Layers-1 ; l++)
+			for(int i = 0; i < s_l[l] ; i++)
+				for(int j = 0; j < s_l[l+1]; j++ )
+				{
+					if(l == index1 && i == index2 && j == index3)
+					{
+						if(plus_minus == true)
+						{
+							if(l == 1)
+								Second_sum += Math.pow(Theta_1[j][i] + EPSILON , 2);
+							else
+								Second_sum += Math.pow(Theta_2[j][i] + EPSILON , 2);
+						}
+							
+						else
+						{
+							if(l == 1)
+								Second_sum += Math.pow(Theta_1[j][i] - EPSILON , 2);
+							else
+								Second_sum += Math.pow(Theta_1[j][i] - EPSILON , 2);
+						}
+					}
+					else
+					{
+						if(l == 1)
+							Second_sum += Math.pow(Theta_1[j][i], 2);
+						else
+							Second_sum += Math.pow(Theta_2[j][i], 2);
+					}
+				}
+		
+		Current_Sum += lambda * Second_sum / (2 * m);
+		return Current_Sum;
+	}
+	
+		
+	public Double costFunctionForCrossValidat(Double[][] Y, int crossValidatSize)
+	{
+		Double Current_Sum = 0.0 , Second_sum = 0.0;
+		System.out.println("h_Theta_all_a4 size: 1x" + h_Theta_all_a4[0].length + ", crossValidatSize size" + crossValidatSize);
+		for(int i = 0; i < crossValidatSize ; i++)
+			for(int j = 0; j < K; j++)
+			{
+				if(h_Theta_all_a4[j][i] == null)
+					System.out.println("h_Theta_all_a4 is null");
+				if(Y[i][j] == null)
+					System.out.println("Y is null");
+				Current_Sum  -=(Double.parseDouble(Y[i][j].toString())* Math.log(h_Theta_all_a4[j][i]) + (1- Double.parseDouble(Y[i][j].toString())) * Math.log(1-h_Theta_all_a4[j][i]));
+				//System.out.println("index:" + i + ",predicted val:" + h_Theta_all_a4[0][i] + ", and true value:" + Ys_training[i]);
+			}
+		Current_Sum /= crossValidatSize;
+		
+		/*
+		for(int l = 1; l <= Layers-1 ; l++)
+			for(int i = 0; i < s_l[l] ; i++)
+				for(int j = 0; j < s_l[l+1]; j++ )
+				
+				{
+					if(l == 1)
+						Second_sum += Math.pow(Theta_1[j][i] , 2);
+					else
+						Second_sum += Math.pow(Theta_2[j][i] , 2);
+				}
+		Current_Sum += lambda * Second_sum / (2 * crossValidatSize);
+		*/
+		return Current_Sum;
+	}
 	
 	
 	static Double gFunc(Double z)
@@ -325,52 +515,4 @@ public class RepresentationNetwork extends Matrix_operations
 		return 1/(1+Math.pow(Math.E , -z));
 	}
 	
-	/**
-	 * 
-	 * @param matrix1
-	 * @param matrix2
-	 * 
-	 * Append the second matrix beneath the first. The matrices are of dimension : dim(matrix1) = p x q and 
-	 * dim(matrix2) = p x r. The resulting matrix will be of dimension p x (q+r)
-	 * 
-	 * @return
-	 */
-	public static Double[][] appendToTheBottom(Double[][] matrix1, Double[][] matrix2) 
-	{
-		//System.out.println("RepresentationNetwork.append first matrix len 1st dim: " + matrix1.length + ",len 2nd dim: " + matrix1[0].length );
-		//System.out.println("RepresentationNetwork.append second matrix len 1st dim: " + matrix2.length + ",len 2nd dim: " + matrix2[0].length );
-		
-		Double[][] result = new Double[matrix1.length + matrix2.length][matrix1[0].length];
-		
-		for(int i = 0; i < matrix1.length; i++)
-			for(int j = 0; j < matrix1[0].length; j++)
-				result[i][j] = matrix1[i][j];
-		
-		for(int i = 0; i < matrix2.length; i++)
-			for(int j = 0; j < matrix2[0].length; j++)
-				result[i + matrix1.length][j] = matrix2[i][j];
-        
-        return result;
-    }
-	
-	
-	
-	public static Double[][] appendToTheRight(Double[][] matrix1, Double[][] matrix2) 
-	{
-		//System.out.println("RepresentationNetwork.append first matrix len 1st dim: " + matrix1.length + ",len 2nd dim: " + matrix1[0].length );
-		//System.out.println("RepresentationNetwork.append second matrix len 1st dim: " + matrix2.length + ",len 2nd dim: " + matrix2[0].length );
-		
-		Double[][] result = new Double[matrix1.length][matrix1[0].length + matrix2[0].length];
-		
-		for(int i = 0; i < matrix1.length; i++)
-			for(int j = 0; j < matrix1[0].length; j++)
-				result[i][j] = matrix1[i][j];
-		
-		for(int i = 0; i < matrix2.length; i++)
-			for(int j = 0; j < matrix2[0].length; j++)
-				result[i][j + matrix1[0].length] = matrix2[i][j];
-        
-        return result;
-    }
-
 }

@@ -7,16 +7,16 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ReadColumnWithIndexFromFile {
+public class ReadOneColumnFromFile {
 	
 	List<String> oneColumn = new ArrayList<String>();
 	
-	public ReadColumnWithIndexFromFile()
+	public ReadOneColumnFromFile()
 	{
 		
 	}
 	
-	public ReadColumnWithIndexFromFile(String file_path, int num_column_to_read) throws IOException
+	public ReadOneColumnFromFile(String file_path, int num_column_to_read) throws IOException
 	{
 		readOneColumnFromTabSeparColumns(file_path,num_column_to_read);	//main operation
 	}
@@ -37,7 +37,7 @@ public class ReadColumnWithIndexFromFile {
 			String[] columns = line.split("\\t");
 			boolean skeepLine = false;
 			for(int i = 0; i < columns.length; i++)
-				if(columns[i].equals("NaN") || columns[i].equals("") || columns[i].equals("null"))
+				if(columns[i].equals("null") || columns[i].equals("NaN") || columns[i].equals("") )
 					skeepLine = true;
 			if(!skeepLine)
 				oneColumn.add(columns[indexOfTheColumn]);

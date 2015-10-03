@@ -40,7 +40,7 @@ public class Training_X_Y_matrix {
 	 */
 	@SuppressWarnings("resource")
 	public static void Create_X_Y_finnance_Matrix(Set<Sym_Date>symDatesForTrainingML, Map<String, Company> mapOfCompanies,
-			Double [][] X, Double[] Y , int [] trainingSize) throws FileNotFoundException, UnsupportedEncodingException
+			Double [][] X, Double[][] Y , int [] trainingSize) throws FileNotFoundException, UnsupportedEncodingException
 	{
 		int skipped = 0;
 		PrintWriter writer;
@@ -48,6 +48,7 @@ public class Training_X_Y_matrix {
 		
 		for(int i=0; i < symDatesForTrainingML.size(); i++)
 		{
+			boolean allRecordsOfSymSkipped = true;
 			Sym_Date symDate = new ArrayList<Sym_Date>(symDatesForTrainingML).get(i);
 			String sym = symDate.get_sym();
 			Integer year = symDate.get_Date_modif().get_year_in_date();
@@ -87,7 +88,7 @@ public class Training_X_Y_matrix {
 						mapOfCompanies.get(sym).get_Company_Qoutes().get_quotes_map().get(symDate.get_Date_modif()).isNaN() 
 						
 					){
-					System.out.println(sym + " skipped with index = " + i);
+					//System.out.println(sym + " skipped with index = " + i);
 					skipped++;
 					continue;
 				}
@@ -105,18 +106,39 @@ public class Training_X_Y_matrix {
 					X[8][i-skipped] = mapOfCompanies.get(sym).get_Company_Qoutes().get_quotes_map().get(symDate.get_Date_modif().get_prev_day_as_datemodif());
 					X[9][i-skipped] = mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyYearSizes().get(currentSymYear);
 					
-					if(Y != null)
-						Y[i-skipped] = mapOfCompanies.get(sym).get_Company_Qoutes().get_quotes_map().get(symDate.get_Date_modif());
+					Double currentDateQuote = mapOfCompanies.get(sym).get_Company_Qoutes().get_quotes_map().get(symDate.get_Date_modif());
+					if((currentDateQuote - X[8][i-skipped]) < 0)
+					{
+						Y[i-skipped][0] =  1.0;
+						Y[i-skipped][1] =  0.0;
+					}
+					else
+					{
+						Y[i-skipped][1] =  1.0;
+						Y[i-skipped][0] =  0.0;
+					}
+					/*
+					if( currentDateQuote.compareTo(X[8][i-skipped])< 0)
+					{
+						Y[i-skipped] = 1.0; 
+					}
+					else
+					{
+						Y[i-skipped] = 0.0; 
+					}*/
 					//System.out.println(Companies_match.get(Sym) + " added for training");
 					
 					writer.println("sym :" + symDate.get_sym() + " with date" + symDate.get_Date_modif().dateModifToString());	
 					
 					_symDates.add(symDate);
+					allRecordsOfSymSkipped = false;
 					trainingSize[0] = i - skipped + 1;
 				}
 			} catch (ParseException e) {
 				System.out.println("Error in accessing some parameter inside Training_X_Y.Create_X_Y_Training_Matrix:" + e);
 			}
+			/*if(allRecordsOfSymSkipped == true)
+				mapOfCompanies.remove(sym);*/
 		} 
 		
 		System.out.println("X training matrix size before correction:" + X[0].length);

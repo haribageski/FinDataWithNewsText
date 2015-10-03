@@ -1,5 +1,6 @@
 package preprocessing;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -8,8 +9,9 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import daily_financial_parameters.Basic_daily_fin_data;
-import yearly_financial_parameters.basicYearlyFinData;
+import daily_financial_parameters.BasicDailyFinData;
+import writing_data_to_file.WriteToFile;
+import yearly_financial_parameters.BasicYearlyFinData;
 
 public class NormalizeParameterInAllEntries<S_D,T> {
 	
@@ -20,8 +22,8 @@ public class NormalizeParameterInAllEntries<S_D,T> {
 	//List<Double> Normalized_list = new ArrayList<Double>();
 	
 	//one of the next two classes will be used
-	List<Basic_daily_fin_data> Daily_fin_fundam;
-	List<basicYearlyFinData> Fin_fundam;
+	List<BasicDailyFinData> Daily_fin_fundam;
+	List<BasicYearlyFinData> Fin_fundam;
 	
 	
 	public T getNonNormalizedData( S_D symDate)
@@ -79,53 +81,55 @@ public class NormalizeParameterInAllEntries<S_D,T> {
 		
 		T value = (T) _allValuesOfParameterNonnormalized.values().toArray()[0];
 		
-		if (value.getClass().toString().equals(new Basic_daily_fin_data("",0.0).getClass().toString()))		//daily data
+		if (value.getClass().toString().equals(new BasicDailyFinData("",0.0).getClass().toString()))		//daily data
 		{
-			Collections.sort((List<Basic_daily_fin_data>) orderedValsOfParam, (c1,c2) -> (c1).compare(c2));
+			Collections.sort((List<BasicDailyFinData>) orderedValsOfParam, (c1,c2) -> (c1).compare(c2));
 			/*for(int i = 0; i<orderedValsOfParam.size(); i++)
 				System.out.println("orderedValsOfParam val:" + ((Basic_daily_fin_data)orderedValsOfParam.toArray()[i]).get_val());
 			*/
 			_globalMaxOfParameter = 
-					((Basic_daily_fin_data) orderedValsOfParam.toArray()[orderedValsOfParam.size()-1]).get_val();
+					((BasicDailyFinData) orderedValsOfParam.toArray()[orderedValsOfParam.size()-1]).getVal();
 			_globalMinOfParameter = 
-					((Basic_daily_fin_data)orderedValsOfParam.toArray()[0]).get_val();
+					((BasicDailyFinData)orderedValsOfParam.toArray()[0]).getVal();
 			
 			for(S_D key : Keys)
 			{
-				Basic_daily_fin_data D = (Basic_daily_fin_data) _allValuesOfParameterNonnormalized.get(key);
+				BasicDailyFinData D = (BasicDailyFinData) _allValuesOfParameterNonnormalized.get(key);
 				//System.out.println("Daily parameter to be normalized:" + D.get_val());
-				if(D.get_val().isNaN())
+				if(D.getVal() == null || D.getVal().isNaN() || D.getVal().isInfinite() )
 				{
 					//D.set_val(Double.NaN);
 					continue;
 				}
 				else
 				{
-					D.set_val((D.get_val() - _globalMinOfParameter) / (_globalMaxOfParameter - _globalMinOfParameter));
+					D.setVal((D.getVal() - _globalMinOfParameter) / (_globalMaxOfParameter - _globalMinOfParameter));
 				}
-				//System.out.println("Daily parameter normalized:" + D.get_val());
+				//System.out.println("Daily parameter normalized:" + D.getVal());
 				_allValuesOfParameterNormalized.put(key, (T) D);
 			}
 		}
 		
 		else	//yearly data
-		if(value.getClass().equals(new basicYearlyFinData(null,null).getClass()))
+		if(value.getClass().equals(new BasicYearlyFinData(null,null).getClass()))
 		{
-			Collections.sort((List<basicYearlyFinData>) orderedValsOfParam, (c1,c2) -> (c1).compare(c2));	
+			
+			Collections.sort((List<BasicYearlyFinData>) orderedValsOfParam, (c1,c2) -> (c1).compare(c2));	
 			/*for(int i = 0; i<orderedValsOfParam.size(); i++)
 				System.out.println("orderedValsOfParam val:" + ((basicYearlyFinData)orderedValsOfParam.toArray()[i]).getVal());
 			*/
 			_globalMaxOfParameter = 
-					((basicYearlyFinData) orderedValsOfParam.toArray()[orderedValsOfParam.size()-1]).getVal();
+					((BasicYearlyFinData) orderedValsOfParam.toArray()[orderedValsOfParam.size()-1]).getVal();
 			_globalMinOfParameter = 
-					((basicYearlyFinData)orderedValsOfParam.toArray()[0]).getVal();
+					((BasicYearlyFinData)orderedValsOfParam.toArray()[0]).getVal();
 
+			
 			for(S_D key : Keys)
 			{
-				basicYearlyFinData D = (basicYearlyFinData) _allValuesOfParameterNonnormalized.get(key);
+				BasicYearlyFinData D = (BasicYearlyFinData) _allValuesOfParameterNonnormalized.get(key);
 				//System.out.println("Yearly parameter to be normalized:" + D.getVal());
 				
-				if(D.getVal().isNaN())
+				if(D.getVal() == null || D.getVal().isNaN() || D.getVal().isInfinite() )
 				{
 					//D.Set_val(Double.NaN);
 					continue;
@@ -159,10 +163,4 @@ public class NormalizeParameterInAllEntries<S_D,T> {
 		Path path = Paths.get( input_folder_path + "Normalized\\ " + file_name);
 		Files.write(path, Lines_to_output, ENCODING);
 	}*/
-	
-	/*public List<Double> get_Normalized_list()
-	{
-		return Normalized_list;
-	}*/
-
 }

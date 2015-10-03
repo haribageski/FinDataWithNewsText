@@ -18,7 +18,7 @@ import java.util.Properties;
 import java.util.TreeSet;
 
 import company.Company;
-import daily_financial_parameters.Basic_daily_fin_data;
+import daily_financial_parameters.BasicDailyFinData;
 import neural_network.CrossValidationMatrix;
 import neural_network.Predict;
 import neural_network.RepresentationNetwork;
@@ -31,7 +31,7 @@ import preprocessing.NormalizeParameterInAllEntries;
 import preprocessing.ToBeFilteredFromOutliers;
 import reading_data_from_file.ReadAndWriteAllSym;
 import reading_data_from_file.ReadUniqueSymFromFile;
-import yearly_financial_parameters.basicYearlyFinData;
+import yearly_financial_parameters.BasicYearlyFinData;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 
 public class Main 
@@ -42,6 +42,7 @@ public class Main
 	static int _trainingSize = 0;
 	static int _crossValidatSize = 0;
 	static int _testingSize = 0;
+	static int _K = 2;
 	//static List<String> _symbols;
 	static Set<Sym_Date> _symDates = new HashSet<Sym_Date>();
 	static List<String> _symbolsInSymDates = new ArrayList<String>();;
@@ -54,23 +55,23 @@ public class Main
 	//static List<DateModif> _datesForTrainingML;
 
 	// non sorted , needed for normalization and to create X matrix
-	static Map<Sym_Year, basicYearlyFinData> Column_shares = new TreeMap<Sym_Year, basicYearlyFinData>();
-	static Map<Sym_Year, basicYearlyFinData> Column_book_val = new TreeMap<Sym_Year, basicYearlyFinData>();
-	static Map<Sym_Year, basicYearlyFinData> Column_ROE = new TreeMap<Sym_Year, basicYearlyFinData>();
-	static Map<Sym_Year, basicYearlyFinData> Column_accrual = new TreeMap<Sym_Year, basicYearlyFinData>();
-	static Map<Sym_Year, basicYearlyFinData> tempMapY = new TreeMap<Sym_Year, basicYearlyFinData>();
+	static Map<Sym_Year, BasicYearlyFinData> Column_shares = new TreeMap<Sym_Year, BasicYearlyFinData>();
+	static Map<Sym_Year, BasicYearlyFinData> Column_book_val = new TreeMap<Sym_Year, BasicYearlyFinData>();
+	static Map<Sym_Year, BasicYearlyFinData> Column_ROE = new TreeMap<Sym_Year, BasicYearlyFinData>();
+	static Map<Sym_Year, BasicYearlyFinData> Column_accrual = new TreeMap<Sym_Year, BasicYearlyFinData>();
+	static Map<Sym_Year, BasicYearlyFinData> tempMapY = new TreeMap<Sym_Year, BasicYearlyFinData>();
 
-	static Map<Sym_Date, Basic_daily_fin_data> Column_dividends = new TreeMap<Sym_Date, Basic_daily_fin_data>();
-	static Map<Sym_Date, Basic_daily_fin_data> Column_qoutes = new TreeMap<Sym_Date, Basic_daily_fin_data>();
-	static Map<Sym_Date, Basic_daily_fin_data> Column_SUEs = new TreeMap<Sym_Date, Basic_daily_fin_data>();
-	static Map<Sym_Date, Basic_daily_fin_data> tempMap = new TreeMap<Sym_Date, Basic_daily_fin_data>();
+	static Map<Sym_Date, BasicDailyFinData> Column_dividends = new TreeMap<Sym_Date, BasicDailyFinData>();
+	static Map<Sym_Date, BasicDailyFinData> Column_qoutes = new TreeMap<Sym_Date, BasicDailyFinData>();
+	static Map<Sym_Date, BasicDailyFinData> Column_SUEs = new TreeMap<Sym_Date, BasicDailyFinData>();
+	static Map<Sym_Date, BasicDailyFinData> tempMap = new TreeMap<Sym_Date, BasicDailyFinData>();
 
 	static Map<String, Company> companiesMap = new TreeMap<String, Company>();
 	static Map<String, Company> trainingCompaniesMap = new TreeMap<String, Company>();
 	static Map<String, Company> crossValidationCompaniesMap = new TreeMap<String, Company>();
 	static Map<String, Company> testingCompaniesMap = new TreeMap<String, Company>();
 
-	static NormalizeParameterInAllEntries<Sym_Date, Basic_daily_fin_data> normalizedColumnQuotes;
+	static NormalizeParameterInAllEntries<Sym_Date, BasicDailyFinData> normalizedColumnQuotes;
 	
 	static RepresentationNetwork neuralNet;
 
@@ -116,14 +117,11 @@ public class Main
 					
 		filterOutliers();
 				
-		normalizeParameters();
+		//normalizeParameters();		//TODO check for division with zero or any operation producing NaN
 		
 		regenerateCompanies();	
 		
 		filterCompaniesAndSetOtherParameters();
-		
-		/*for(Sym_Date symDate : _symDates)
-			System.out.println(symDate.toString());*/
 		
 		prepareForMachineLearning();
 		
@@ -137,21 +135,48 @@ public class Main
 		
 		// Initiate neural network
 		neuralNet.Learn();		
-		System.out.println("Neural network done");	
+		System.out.println("Neural network learning done");	
 		
 		
 		
 		Double [][] XsCrossValidat = createCrossValidationMatrix();
 		List <Sym_Date> symDatesCrossValidatList = new ArrayList<Sym_Date>(_symDatesForCrossValidationML);
-		for(int i = 0; i < XsCrossValidat.length; i++)
+		Double[][] predictedVal = neuralNet.makePrediction( XsCrossValidat, XsCrossValidat.length);
+		
+		Double [][] YCrossValidat = new Double [XsCrossValidat.length][_K];
+		for(int i = 0; i < predictedVal.length; i++)
 		{
-			Double predicterVal;
-			predicterVal = neuralNet.makePrediction( XsCrossValidat[i]);
 			Sym_Date symDate = symDatesCrossValidatList.get(i);
-			System.out.println("predicterVal normalized:" + predicterVal.toString());
+			System.out.println("symDate:" + symDate.get_Date_modif().toString());
+			if(Column_qoutes.get(symDate) == null)
+				System.out.println("Cannot find data in Column_qoutes with sym indexed " + i);
+			Sym_Date sD = new Sym_Date(symDate.get_sym(), symDate.get_Date_modif().get_prev_day_as_datemodif());
+			if(!Column_qoutes.containsKey(sD) || !Column_qoutes.containsKey(symDate))
+			{
+				YCrossValidat[i][0] = YCrossValidat[i][1] = 0.0;
+			}
+			else
+			{
+				if( (Column_qoutes.get(symDate).getVal() - Column_qoutes.get(sD).getVal()) < 0)
+				{
+					YCrossValidat[i][0] = 1.0;
+					YCrossValidat[i][1] = 0.0;
+				}
+				else
+				{
+					YCrossValidat[i][0] = 0.0;
+					YCrossValidat[i][1] = 1.0;
+				}
+				//		 			.compareTo(	Column_qoutes.get());
+				System.out.println("index:" + i + 
+						", predicterVal:" + predictedVal[i][0].toString() + " " + predictedVal[i][1].toString() +
+						",original value:" + YCrossValidat[i][0].toString() + " " + YCrossValidat[i][1].toString());
 			
-			System.out.println("original value:" + normalizedColumnQuotes.getNormalizedData(symDate).get_val().toString());
+			}
 		}
+		
+		System.out.println("Cost in CrossValidat set = " + 
+							neuralNet.costFunctionForCrossValidat(YCrossValidat, XsCrossValidat.length));
 	}
 	
 	
@@ -202,31 +227,31 @@ public class Main
 		for(Company company : companiesMap.values())
 		{
 			writer.println("company dividend:");
-			for(Basic_daily_fin_data daily : company.get_Company_Dividend().get_All_company_dividends())
-				writer.println(daily.get_val());
+			for(BasicDailyFinData daily : company.get_Company_Dividend().get_All_company_dividends())
+				writer.println(daily.getVal());
 			writer.println("company sue:");
-			for(Basic_daily_fin_data daily : company.get_Company_SUE().get_All_company_SUE())
-				writer.println(daily.get_val());
+			for(BasicDailyFinData daily : company.get_Company_SUE().get_All_company_SUE())
+				writer.println(daily.getVal());
 			writer.println("company Quotes:");
-			for(Basic_daily_fin_data daily : company.get_Company_SUE().get_All_company_SUE())
-				writer.println(daily.get_val());
+			for(BasicDailyFinData daily : company.get_Company_SUE().get_All_company_SUE())
+				writer.println(daily.getVal());
 			writer.println("company BM_Ratios:");
 			for(Double val : company.get_Fin_fundamentals().getAllBM_Ratios().values())
 				writer.println(val);
 			writer.println("company Accrual:");
-			for(basicYearlyFinData val : company.get_Fin_fundamentals().getAllCompanyAccrual().values())
+			for(BasicYearlyFinData val : company.get_Fin_fundamentals().getAllCompanyAccrual().values())
 				writer.println(val.getVal());
 			writer.println("company Bookval:");
-			for(basicYearlyFinData val : company.get_Fin_fundamentals().getAllCompanyBookVal().values())
+			for(BasicYearlyFinData val : company.get_Fin_fundamentals().getAllCompanyBookVal().values())
 				writer.println(val.getVal());
 			writer.println("company MarketVals:");
 			for(Double val : company.get_Fin_fundamentals().getAllCompanyMarketVals().values())
 				writer.println(val);
 			writer.println("company ROE:");
-			for(basicYearlyFinData val : company.get_Fin_fundamentals().getAllCompanyROE().values())
+			for(BasicYearlyFinData val : company.get_Fin_fundamentals().getAllCompanyROE().values())
 				writer.println(val.getVal());
 			writer.println("company Shares:");
-			for(basicYearlyFinData val : company.get_Fin_fundamentals().getAllCompanyShares().values())
+			for(BasicYearlyFinData val : company.get_Fin_fundamentals().getAllCompanyShares().values())
 				writer.println(val.getVal());
 			writer.println("company size:");
 			for(Double val : company.get_Fin_fundamentals().getAllCompanyYearSizes().values())
@@ -242,10 +267,10 @@ public class Main
 	 */
 	static void setColumnMapsOfParameters(List<String>Symbols)
 	{
-		for (int f = 0; f < Symbols.size() && f < 30; f++)  
+		for (int f = 0; f < Symbols.size() && f < 200 ; f++)  
 		{
 			String Sym = Symbols.get(f);
-
+			
 			Company company = null;
 			try {
 				company = new Company(Sym, pipeline);
@@ -279,12 +304,12 @@ public class Main
 			/*
 			 * Add the parameters to 'global' maps that is one map for all companies
 			 */
-			for (Basic_daily_fin_data D : company.get_Company_Dividend().get_All_company_dividends())
-				Column_dividends.put(new Sym_Date(Sym, D.get_date()), D);
-			for (Basic_daily_fin_data D : company.get_Company_Qoutes().get_All_company_quotes())
-				Column_qoutes.put(new Sym_Date(Sym, D.get_date()), D);
-			for (Basic_daily_fin_data D : company.get_Company_SUE().get_All_company_SUE())
-				Column_SUEs.put(new Sym_Date(Sym, D.get_date()), D);
+			for (BasicDailyFinData D : company.get_Company_Dividend().get_All_company_dividends())
+				Column_dividends.put(new Sym_Date(Sym, D.getDate()), D);
+			for (BasicDailyFinData D : company.get_Company_Qoutes().get_All_company_quotes())
+				Column_qoutes.put(new Sym_Date(Sym, D.getDate()), D);
+			for (BasicDailyFinData D : company.get_Company_SUE().get_All_company_SUE())
+				Column_SUEs.put(new Sym_Date(Sym, D.getDate()), D);
 
 			Column_book_val.putAll(company.get_Fin_fundamentals().getAllCompanyBookVal());
 			Column_shares.putAll(company.get_Fin_fundamentals().getAllCompanyShares());
@@ -304,15 +329,15 @@ public class Main
 		HashSet<Sym_Year> outliersYears = new HashSet<Sym_Year>();
 		
 		
-		outliersDates = (new  ToBeFilteredFromOutliers<Sym_Date, Basic_daily_fin_data>(Column_dividends)).filterFromOutliers();
-		outliersDates.addAll((new  ToBeFilteredFromOutliers<Sym_Date, Basic_daily_fin_data>(Column_qoutes)).filterFromOutliers());
-		outliersDates.addAll((new  ToBeFilteredFromOutliers<Sym_Date, Basic_daily_fin_data>(Column_SUEs)).filterFromOutliers());
-		outliersYears.addAll((new  ToBeFilteredFromOutliers<Sym_Year, basicYearlyFinData>(Column_shares)).filterFromOutliers());
-		outliersYears.addAll((new  ToBeFilteredFromOutliers<Sym_Year, basicYearlyFinData>(Column_book_val)).filterFromOutliers());
-		outliersYears.addAll((new  ToBeFilteredFromOutliers<Sym_Year, basicYearlyFinData>(Column_accrual)).filterFromOutliers());
-		outliersYears.addAll((new  ToBeFilteredFromOutliers<Sym_Year, basicYearlyFinData>(Column_ROE)).filterFromOutliers());
+		outliersDates = (new  ToBeFilteredFromOutliers<Sym_Date, BasicDailyFinData>(Column_dividends)).filterFromOutliers();
+		outliersDates.addAll((new  ToBeFilteredFromOutliers<Sym_Date, BasicDailyFinData>(Column_qoutes)).filterFromOutliers());
+		outliersDates.addAll((new  ToBeFilteredFromOutliers<Sym_Date, BasicDailyFinData>(Column_SUEs)).filterFromOutliers());
+		outliersYears.addAll((new  ToBeFilteredFromOutliers<Sym_Year, BasicYearlyFinData>(Column_shares)).filterFromOutliers());
+		outliersYears.addAll((new  ToBeFilteredFromOutliers<Sym_Year, BasicYearlyFinData>(Column_book_val)).filterFromOutliers());
+		outliersYears.addAll((new  ToBeFilteredFromOutliers<Sym_Year, BasicYearlyFinData>(Column_accrual)).filterFromOutliers());
+		outliersYears.addAll((new  ToBeFilteredFromOutliers<Sym_Year, BasicYearlyFinData>(Column_ROE)).filterFromOutliers());
 		
-		tempMap = new TreeMap<Sym_Date, Basic_daily_fin_data>();
+		tempMap = new TreeMap<Sym_Date, BasicDailyFinData>();
 		System.out.println("Before filter_treeset() Dividend size: " + Column_dividends.size());
 		for(Sym_Date sD : Column_dividends.keySet())
 			if(!outliersDates.contains(sD) && !outliersYears.contains(sD.get_Date_modif().get_year_in_date()))
@@ -321,7 +346,7 @@ public class Main
 		System.out.println("After filter_treeset() Dividend size: " + Column_dividends.size());
 
 		System.out.println("Before filter_treeset() quotes size: " + Column_qoutes.size());
-		tempMap = new TreeMap<Sym_Date, Basic_daily_fin_data>();
+		tempMap = new TreeMap<Sym_Date, BasicDailyFinData>();
 		for(Sym_Date sD : Column_qoutes.keySet())
 			if(!outliersDates.contains(sD) && !outliersYears.contains(sD.get_Date_modif().get_year_in_date()))
 				tempMap.put(sD, Column_qoutes.get(sD));
@@ -329,7 +354,7 @@ public class Main
 		System.out.println("After filter_treeset quotes() size " + Column_qoutes.size());
 
 		System.out.println("Before filter_treeset() Column_SUEs size: " + Column_SUEs.size()); 
-		tempMap = new TreeMap<Sym_Date, Basic_daily_fin_data>();
+		tempMap = new TreeMap<Sym_Date, BasicDailyFinData>();
 		for(Sym_Date sD : Column_SUEs.keySet())
 			if(!outliersDates.contains(sD) && !outliersYears.contains(sD.get_Date_modif().get_year_in_date()))
 				tempMap.put(sD, Column_SUEs.get(sD));
@@ -337,7 +362,7 @@ public class Main
 		System.out.println("After filter_treeset Column_SUEs size: " + Column_SUEs.size());
 		
 		System.out.println("Before filter_treeset() Column_shares size: " + Column_shares.size()); 
-		tempMapY = new TreeMap<Sym_Year, basicYearlyFinData>();
+		tempMapY = new TreeMap<Sym_Year, BasicYearlyFinData>();
 		for(Sym_Year sD : Column_shares.keySet())
 			if(!outliersYears.contains(sD))
 				tempMapY.put(sD, Column_shares.get(sD));
@@ -345,7 +370,7 @@ public class Main
 		System.out.println("After filter_treeset Column_shares size: " + Column_shares.size());
 		
 		System.out.println("Before filter_treeset() Column_book_val size: " + Column_book_val.size());
-		tempMapY = new TreeMap<Sym_Year, basicYearlyFinData>();
+		tempMapY = new TreeMap<Sym_Year, BasicYearlyFinData>();
 		for(Sym_Year sD : Column_book_val.keySet())
 			if(!outliersYears.contains(sD))
 				tempMapY.put(sD, Column_book_val.get(sD));
@@ -353,7 +378,7 @@ public class Main
 		System.out.println("After filter_treeset Column_book_val size: " + Column_book_val.size());
 		
 		System.out.println("Before filter_treeset() Column_accrual size: " + Column_accrual.size()); 
-		tempMapY = new TreeMap<Sym_Year, basicYearlyFinData>();
+		tempMapY = new TreeMap<Sym_Year, BasicYearlyFinData>();
 		for(Sym_Year sD : Column_accrual.keySet())
 			if(!outliersYears.contains(sD))
 				tempMapY.put(sD, Column_accrual.get(sD));
@@ -361,7 +386,7 @@ public class Main
 		System.out.println("After filter_treeset Column_accrual size: " + Column_accrual.size());
 
 		System.out.println("Before filter_treeset() Column_ROE size: " + Column_ROE.size()); 
-		tempMapY = new TreeMap<Sym_Year, basicYearlyFinData>();
+		tempMapY = new TreeMap<Sym_Year, BasicYearlyFinData>();
 		for(Sym_Year sD : Column_ROE.keySet())
 			if(!outliersYears.contains(sD))
 				tempMapY.put(sD, Column_ROE.get(sD));
@@ -381,33 +406,32 @@ public class Main
 	*/
 	static void normalizeParameters()
 	{	
-		NormalizeParameterInAllEntries<Sym_Date, Basic_daily_fin_data> normalizedColumnDividends = 
-				new NormalizeParameterInAllEntries<Sym_Date, Basic_daily_fin_data>(Column_dividends);
+		NormalizeParameterInAllEntries<Sym_Date, BasicDailyFinData> normalizedColumnDividends = 
+				new NormalizeParameterInAllEntries<Sym_Date, BasicDailyFinData>(Column_dividends);
 		Column_dividends = normalizedColumnDividends.getValuesOfParameterNormalized();
 	
 		normalizedColumnQuotes = 
-				new NormalizeParameterInAllEntries<Sym_Date, Basic_daily_fin_data>(Column_qoutes);
+				new NormalizeParameterInAllEntries<Sym_Date, BasicDailyFinData>(Column_qoutes);
 		Column_qoutes = normalizedColumnQuotes.getValuesOfParameterNormalized();
 		
-		
-		NormalizeParameterInAllEntries<Sym_Date, Basic_daily_fin_data> normalizedColumnSUEs = 
-				new NormalizeParameterInAllEntries<Sym_Date, Basic_daily_fin_data>(Column_SUEs);
+		NormalizeParameterInAllEntries<Sym_Date, BasicDailyFinData> normalizedColumnSUEs = 
+				new NormalizeParameterInAllEntries<Sym_Date, BasicDailyFinData>(Column_SUEs);
 		Column_SUEs = normalizedColumnSUEs.getValuesOfParameterNormalized();
 	
-		NormalizeParameterInAllEntries<Sym_Year, basicYearlyFinData> normalizedColumnShares = 
-				new NormalizeParameterInAllEntries<Sym_Year, basicYearlyFinData>(Column_shares);
+		NormalizeParameterInAllEntries<Sym_Year, BasicYearlyFinData> normalizedColumnShares = 
+				new NormalizeParameterInAllEntries<Sym_Year, BasicYearlyFinData>(Column_shares);
 		Column_shares = normalizedColumnShares.getValuesOfParameterNormalized();
 	
-		NormalizeParameterInAllEntries<Sym_Year, basicYearlyFinData> normalizedColumnBookVals = 
-				new NormalizeParameterInAllEntries<Sym_Year, basicYearlyFinData>(Column_book_val);
+		NormalizeParameterInAllEntries<Sym_Year, BasicYearlyFinData> normalizedColumnBookVals = 
+				new NormalizeParameterInAllEntries<Sym_Year, BasicYearlyFinData>(Column_book_val);
 		Column_book_val = normalizedColumnBookVals.getValuesOfParameterNormalized();
 	
-		NormalizeParameterInAllEntries<Sym_Year, basicYearlyFinData> normalizedColumnAccruals = 
-				new NormalizeParameterInAllEntries<Sym_Year, basicYearlyFinData>(Column_accrual);
+		NormalizeParameterInAllEntries<Sym_Year, BasicYearlyFinData> normalizedColumnAccruals = 
+				new NormalizeParameterInAllEntries<Sym_Year, BasicYearlyFinData>(Column_accrual);
 		Column_accrual = normalizedColumnAccruals.getValuesOfParameterNormalized();
 	
-		NormalizeParameterInAllEntries<Sym_Year, basicYearlyFinData> normalizedColumnROEs = 
-				new NormalizeParameterInAllEntries<Sym_Year, basicYearlyFinData>(Column_ROE);
+		NormalizeParameterInAllEntries<Sym_Year, BasicYearlyFinData> normalizedColumnROEs = 
+				new NormalizeParameterInAllEntries<Sym_Year, BasicYearlyFinData>(Column_ROE);
 		Column_ROE = normalizedColumnROEs.getValuesOfParameterNormalized();
 		
 		System.out.println("Normalization done");
@@ -549,7 +573,7 @@ public class Main
 	
 	
 	/** Companies recreated. Filter companies with some parameter outlier that has been erased in the previous step and now is null.
-	 * Set the other parameters and read or evaluate (and generate) senti files
+	 * Set the other parameters and read or evaluate (and generate) senti files,
 	 * @throws ParseException 
 	 * @throws IOException 
 	 */

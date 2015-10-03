@@ -9,14 +9,14 @@ import java.util.List;
 import java.util.Map;
 
 import other_structures.DateModif;
-import reading_data_from_file.ReadColumnWithIndexFromFile;
+import reading_data_from_file.ReadOneColumnFromFile;
 
 public class CompanyDividend {
 	String Sym;
-	Basic_daily_fin_data Oldest_dividend;
-	Basic_daily_fin_data Earliest_dividend;
+	BasicDailyFinData Oldest_dividend;
+	BasicDailyFinData Earliest_dividend;
 	Map<Integer,Double> avg_per_year_dividend =  new HashMap<Integer, Double>();		
-	List <Basic_daily_fin_data> All_company_dividends = new ArrayList <Basic_daily_fin_data>();
+	List <BasicDailyFinData> All_company_dividends = new ArrayList <BasicDailyFinData>();
 	HashSet<Integer> All_company_divi_years = new HashSet<Integer>() ;
 	String folder_path = "D:\\my documents\\Senior_Project_datasets\\Dividends\\";
 	
@@ -30,13 +30,13 @@ public class CompanyDividend {
 		return avg_per_year_dividend;
 	}
 	
-	public void add_dividend(Basic_daily_fin_data divi)
+	public void add_dividend(BasicDailyFinData divi)
 	{
 		All_company_dividends.add(divi) ;
-		All_company_divi_years.add(divi.get_date().get_year_in_date());
+		All_company_divi_years.add(divi.getDate().get_year_in_date());
 	}
 	
-	public void eraseDividend(Basic_daily_fin_data divi)
+	public void eraseDividend(BasicDailyFinData divi)
 	{
 		All_company_dividends.remove(divi) ;
 	}
@@ -51,7 +51,7 @@ public class CompanyDividend {
 		All_company_divi_years.remove(year) ;
 	}
 	
-	public Basic_daily_fin_data Get_oldest_dividend()
+	public BasicDailyFinData Get_oldest_dividend()
 	{
 		return Oldest_dividend;
 	}
@@ -60,7 +60,7 @@ public class CompanyDividend {
 		return folder_path;
 	}
 	
-	public List <Basic_daily_fin_data> get_All_company_dividends()
+	public List <BasicDailyFinData> get_All_company_dividends()
 	{
 		return  All_company_dividends ;
 	}
@@ -71,10 +71,10 @@ public class CompanyDividend {
 		DateModif date = new DateModif(); 
 		
 		String file_path = folder_path + Sym + ".txt";
-		ReadColumnWithIndexFromFile Read_date = new ReadColumnWithIndexFromFile(file_path, 1);
+		ReadOneColumnFromFile Read_date = new ReadOneColumnFromFile(file_path, 1);
 		
 		List<String> Normalized_dividend_price = 
-				(new ReadColumnWithIndexFromFile(file_path, 2)).getTheColumn();
+				(new ReadOneColumnFromFile(file_path, 2)).getTheColumn();
 		
 		for(int i = 0; i < Read_date.getTheColumn().size(); i++)
 		{
@@ -84,8 +84,8 @@ public class CompanyDividend {
 			if(dividend.equals(Double.NaN) || dividend.equals(null))
 				continue;
 			
-			Basic_daily_fin_data Divid = new Basic_daily_fin_data(Sym, dividend);
-			Divid.set_date(date);
+			BasicDailyFinData Divid = new BasicDailyFinData(Sym, dividend);
+			Divid.setDate(date);
 			
 			All_company_dividends.add( Divid );
 			All_company_divi_years.add(date.get_year_in_date());
@@ -103,10 +103,10 @@ public class CompanyDividend {
 			avg_per_year_dividend.clear();
 			
 			
-			for(Basic_daily_fin_data Divi : All_company_dividends)
+			for(BasicDailyFinData Divi : All_company_dividends)
 			{
-				date = Divi.get_date();
-				dividend = Divi.get_val();
+				date = Divi.getDate();
+				dividend = Divi.getVal();
 				
 				if(!year.equals(date.get_year_in_date())) 		//different year
 				{
@@ -125,13 +125,13 @@ public class CompanyDividend {
 				
 				if(Divi.equals(All_company_dividends.toArray()[0]) )	//first year first qoute
 				{
-					Oldest_dividend = new Basic_daily_fin_data(Sym, dividend);
-					Oldest_dividend.set_date(date);
+					Oldest_dividend = new BasicDailyFinData(Sym, dividend);
+					Oldest_dividend.setDate(date);
 				}
 				
 				
-				Earliest_dividend = new Basic_daily_fin_data(Sym, dividend);	//it will be reassigning till the very last	
-				Earliest_dividend.set_date(date);
+				Earliest_dividend = new BasicDailyFinData(Sym, dividend);	//it will be reassigning till the very last	
+				Earliest_dividend.setDate(date);
 			}
 			
 			if(days_year!=0)

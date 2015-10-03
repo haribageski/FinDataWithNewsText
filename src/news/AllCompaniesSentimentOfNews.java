@@ -24,7 +24,6 @@ import edu.stanford.nlp.util.StringUtils;
  */
 public class AllCompaniesSentimentOfNews 
 {
-	static int  indexesToAdd = 0;
 	static String folderPath = "D:\\my documents\\Senior_Project_datasets\\News_senti\\";  
 	static List<Double>  _posTitles = new ArrayList<Double>();
 	static List<Double> _neutTitles = new ArrayList<Double>();
@@ -60,10 +59,7 @@ public class AllCompaniesSentimentOfNews
 		return new ArrayList<Sym_Date>(_sentiFilesSymDatesOrdered);
 	}
 	
-	/*public static List<DateModif> get_dates()
-	{
-		return dates;
-	}*/
+	
 	
 	/**
 	 * Reads from the generated sentiment files. Considers only lines with consistent date with the 
@@ -116,8 +112,7 @@ public class AllCompaniesSentimentOfNews
 					}
 					
 					fields = lines.get(i).split("\t");		//parses a line in columns by tab delimiter
-					indexesToAdd++;
-				
+					
 					//check if some field is NaN
 					if(fields[j].contains("NaN") || fields[j+1].contains("NaN") ||fields[j+2].contains("NaN") || 
 							fields[j+3].contains("NaN") || fields[j+4].contains("NaN")|| fields[j+5].contains("NaN"))
@@ -157,12 +152,9 @@ public class AllCompaniesSentimentOfNews
 					_negDescr.add( Double.parseDouble(fields[j+5]));
 					_neutDescr.add( Double.parseDouble(fields[j+6]));
 					_sentiFilesSymDatesOrdered.add(symDate);
-					//System.out.println("adding to _sentiFilesSymDatesOrdered");
 				}
 		    }
 	  	}
-	  	indexesToAdd--;		//the last increment is redundant
-		
 	  	return _neutDescr.size();	
 	}
 	

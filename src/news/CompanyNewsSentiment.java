@@ -16,7 +16,7 @@ import java.util.Map.Entry;
 import company.Company;
 
 import other_structures.DateModif;
-import reading_data_from_file.ReadColumnWithIndexFromFile;
+import reading_data_from_file.ReadOneColumnFromFile;
 import reading_data_from_file.ReadFromFile;
 import reading_data_from_file.ReadUniqueSymFromFile;
 import writing_data_to_file.WriteToFile;
@@ -235,9 +235,9 @@ public class CompanyNewsSentiment
 		Double pos_descr = 0.0, neg_descr = 0.0, neut_descr = 0.0;
 		boolean newsIsConsistentInDateWithFinParams = true;		//we need this for checking if we should add the last news as one with unique date
 		
-		ReadColumnWithIndexFromFile Read_date = new ReadColumnWithIndexFromFile(_filePathToTextNews, 1);
-		ReadColumnWithIndexFromFile Read_title = new ReadColumnWithIndexFromFile(_filePathToTextNews, 2);
-		ReadColumnWithIndexFromFile Read_description = new ReadColumnWithIndexFromFile(_filePathToTextNews, 3);
+		ReadOneColumnFromFile Read_date = new ReadOneColumnFromFile(_filePathToTextNews, 1);
+		ReadOneColumnFromFile Read_title = new ReadOneColumnFromFile(_filePathToTextNews, 2);
+		ReadOneColumnFromFile Read_description = new ReadOneColumnFromFile(_filePathToTextNews, 3);
 		
 		
 		DateModif date = new DateModif(), prev_date = new DateModif();
@@ -252,7 +252,7 @@ public class CompanyNewsSentiment
 		
 		for(int i = 0; i < Read_date.getTheColumn().size(); i++)
 		{
-			newsIsConsistentInDateWithFinParams = true;
+			newsIsConsistentInDateWithFinParams = false;
 			date = new DateModif(Read_date.getTheColumn().get(i) );
 			
 			//TODO check if date is relevant
@@ -267,17 +267,15 @@ public class CompanyNewsSentiment
 			if(!News.isRelevant(All_company_SUE_years, All_company_fin_fundam_years, 
 				All_company_quotes_years,All_company_quotes_dates, All_company_divi_years))
 			{
-				newsIsConsistentInDateWithFinParams = false;
 				continue;
 			}
-			
-			//System.out.println("count:" + count);
-			if(!date.equals(prev_date)) 		//different dates, want to count the news sentiment for a given day for a company
+			else
+				newsIsConsistentInDateWithFinParams = true;
+
+			if(!date.equals(prev_date)) 		//different dates, want to record news sentiment for the previous date
 			{
 				if(i!=0)	//not the first date first entry
 				{
-					//System.out.println("new date");
-					//System.out.println();
 					_sentimentForTitles[0] = pos_titl ;
 					_sentimentForTitles[1] = neg_titl ;
 					_sentimentForTitles[2] = neut_titl ;
@@ -322,6 +320,7 @@ public class CompanyNewsSentiment
 			pos_descr += _sentimentForDescriptions[0];
 			neg_descr += _sentimentForDescriptions[1];
 			neut_descr += _sentimentForDescriptions[2];
+			
 			for(int j = 0; j < 3; j++)
 			{
 				numOfTitleSentences += _sentimentForTitles[j];
@@ -406,14 +405,6 @@ public class CompanyNewsSentiment
 		 }
 	}
 	
-	/*static void initiateStanfordNLP() 
-	{
-		Properties props = new Properties();
-		props.put("annotators", 
-				"tokenize, ssplit, pos, lemma, parse, sentiment, ner, dcoref");
-		props.put("dcoref.score", true);
-		_pipeline = new StanfordCoreNLP(props);
-	}*/
 	
 	private static void log(Object aMsg)
 	{

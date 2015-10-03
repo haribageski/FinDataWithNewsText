@@ -12,18 +12,18 @@ import java.util.TreeMap;
 import daily_financial_parameters.CompanyQuotes;
 import other_structures.DateModif;
 import other_structures.Sym_Year;
-import reading_data_from_file.ReadColumnWithIndexFromFile;
+import reading_data_from_file.ReadOneColumnFromFile;
 
-public class companyYearlyFinFundamentals  {
+public class CompanyYearlyFinFundamentals  {
 	String  _sym;
 	
 	Integer _oldestYear = 0, _earliestYear;
 	
 	//fundamental financial parameters
-	Map<Sym_Year, basicYearlyFinData> _perYearBookVal =  new TreeMap<Sym_Year, basicYearlyFinData>();
-	Map<Sym_Year, basicYearlyFinData> _perYearNumShares =  new TreeMap<Sym_Year, basicYearlyFinData> ();
-	Map<Sym_Year, basicYearlyFinData> _perYearROE =  new TreeMap<Sym_Year, basicYearlyFinData> ();
-	Map<Sym_Year, basicYearlyFinData> _perYearAccrual =  new TreeMap<Sym_Year, basicYearlyFinData> ();	
+	Map<Sym_Year, BasicYearlyFinData> _perYearBookVal =  new TreeMap<Sym_Year, BasicYearlyFinData>();
+	Map<Sym_Year, BasicYearlyFinData> _perYearNumShares =  new TreeMap<Sym_Year, BasicYearlyFinData> ();
+	Map<Sym_Year, BasicYearlyFinData> _perYearROE =  new TreeMap<Sym_Year, BasicYearlyFinData> ();
+	Map<Sym_Year, BasicYearlyFinData> _perYearAccrual =  new TreeMap<Sym_Year, BasicYearlyFinData> ();	
 	
 	//derived financial parameters from the fundamental financial parameters
 	Map<Sym_Year,Double> _perYearMarketVal =  new TreeMap<Sym_Year, Double>();	
@@ -37,12 +37,12 @@ public class companyYearlyFinFundamentals  {
 	String _folderPath = "D:\\my documents\\Senior_Project_datasets\\Financial_parameters\\";
 	
 	
-	public companyYearlyFinFundamentals(String Symbol)
+	public CompanyYearlyFinFundamentals(String Symbol)
 	{
 		_sym = Symbol;
 	}
 	
-	public void addAccrual(Sym_Year S_D, basicYearlyFinData Fin_Unit)
+	public void addAccrual(Sym_Year S_D, BasicYearlyFinData Fin_Unit)
 	{
 		if(!Fin_Unit.getVal().isNaN())
 		{
@@ -56,7 +56,7 @@ public class companyYearlyFinFundamentals  {
 		_perYearAccrual.remove(symYear);
 	}
 	
-	public void addROE(Sym_Year S_D, basicYearlyFinData Fin_Unit)
+	public void addROE(Sym_Year S_D, BasicYearlyFinData Fin_Unit)
 	{
 		if(!Fin_Unit.getVal().isNaN())
 		{
@@ -70,7 +70,7 @@ public class companyYearlyFinFundamentals  {
 		_perYearROE.remove(symYear);
 	}
 	
-	public void addShare(Sym_Year S_D, basicYearlyFinData Fin_Unit)
+	public void addShare(Sym_Year S_D, BasicYearlyFinData Fin_Unit)
 	{
 		if(!Fin_Unit.getVal().isNaN())
 		{
@@ -84,7 +84,7 @@ public class companyYearlyFinFundamentals  {
 		_perYearAccrual.remove(symYear);
 	}
 	
-	public void addBookVal(Sym_Year S_D, basicYearlyFinData Fin_Unit)
+	public void addBookVal(Sym_Year S_D, BasicYearlyFinData Fin_Unit)
 	{
 		if(!Fin_Unit.getVal().isNaN())
 		{
@@ -103,12 +103,12 @@ public class companyYearlyFinFundamentals  {
 		_allCompanyFinFundamYears.remove(symYear.get_year());
 	}
 	
-	public Map<Sym_Year, basicYearlyFinData>  getAllCompanyBookVal()
+	public Map<Sym_Year, BasicYearlyFinData>  getAllCompanyBookVal()
 	{
 			return _perYearBookVal;
 	}
 	
-	public Map<Sym_Year, basicYearlyFinData>   getAllCompanyShares()
+	public Map<Sym_Year, BasicYearlyFinData>   getAllCompanyShares()
 	{
 		return _perYearNumShares;
 	}
@@ -124,11 +124,11 @@ public class companyYearlyFinFundamentals  {
 	{
 		return _perYearSize;
 	}
-	public Map<Sym_Year, basicYearlyFinData>  getAllCompanyROE()
+	public Map<Sym_Year, BasicYearlyFinData>  getAllCompanyROE()
 	{
 		return _perYearROE;
 	}
-	public Map<Sym_Year, basicYearlyFinData>  getAllCompanyAccrual()
+	public Map<Sym_Year, BasicYearlyFinData>  getAllCompanyAccrual()
 	{
 		return _perYearAccrual;
 	}
@@ -173,17 +173,17 @@ public class companyYearlyFinFundamentals  {
 	public void read_copany_fin_fundamentals() throws IOException, ParseException
 	{
 		String filePath = _folderPath + _sym + ".txt";
-		ReadColumnWithIndexFromFile Read_date = new ReadColumnWithIndexFromFile(filePath, 1);
+		ReadOneColumnFromFile Read_date = new ReadOneColumnFromFile(filePath, 1);
 		
 		List<String> Normalized_book_value = 
-				(new ReadColumnWithIndexFromFile(filePath, 2)).getTheColumn();
+				(new ReadOneColumnFromFile(filePath, 2)).getTheColumn();
 		System.out.println("companyYearlyFinFundamentals.Normalized_book_value size:" + Normalized_book_value.size());
 		List<String> Normalized_num_of_shares = 
-				(new ReadColumnWithIndexFromFile(filePath, 3)).getTheColumn();
+				(new ReadOneColumnFromFile(filePath, 3)).getTheColumn();
 		List<String> Normalized_ROE = 
-				(new ReadColumnWithIndexFromFile(filePath, 4)).getTheColumn();
+				(new ReadOneColumnFromFile(filePath, 4)).getTheColumn();
 		List<String> Normalized_Accrual = 
-				(new ReadColumnWithIndexFromFile(filePath, 5)).getTheColumn();
+				(new ReadOneColumnFromFile(filePath, 5)).getTheColumn();
 		
 		for(int i = 0; i < Read_date.getTheColumn().size(); i++)
 		{
@@ -196,14 +196,14 @@ public class companyYearlyFinFundamentals  {
 				continue;
 			}
 			
-			basicYearlyFinData To_insert1 = 
-					new basicYearlyFinData	(_sym, Double.parseDouble(Normalized_book_value.get(i)), year);
-			basicYearlyFinData To_insert2 = 
-					new basicYearlyFinData (_sym, Double.parseDouble(Normalized_num_of_shares.get(i)), year);
-			basicYearlyFinData To_insert3 = 
-					new basicYearlyFinData (_sym,Double.parseDouble(Normalized_ROE.get(i)), year);		
-			basicYearlyFinData To_insert4 = 
-					new basicYearlyFinData (_sym,Double.parseDouble(Normalized_Accrual.get(i)), year);
+			BasicYearlyFinData To_insert1 = 
+					new BasicYearlyFinData	(_sym, Double.parseDouble(Normalized_book_value.get(i)), year);
+			BasicYearlyFinData To_insert2 = 
+					new BasicYearlyFinData (_sym, Double.parseDouble(Normalized_num_of_shares.get(i)), year);
+			BasicYearlyFinData To_insert3 = 
+					new BasicYearlyFinData (_sym,Double.parseDouble(Normalized_ROE.get(i)), year);		
+			BasicYearlyFinData To_insert4 = 
+					new BasicYearlyFinData (_sym,Double.parseDouble(Normalized_Accrual.get(i)), year);
 			
 			if(To_insert1.getVal().isNaN() || To_insert2.getVal().isNaN() ||
 				To_insert3.getVal().isNaN() || To_insert4.getVal().isNaN() ||
