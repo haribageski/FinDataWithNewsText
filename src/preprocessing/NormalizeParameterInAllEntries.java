@@ -98,7 +98,7 @@ public class NormalizeParameterInAllEntries<S_D,T> {
 				//System.out.println("Daily parameter to be normalized:" + D.get_val());
 				if(D.getVal() == null || D.getVal().isNaN() || D.getVal().isInfinite() )
 				{
-					//D.set_val(Double.NaN);
+					System.out.println("D.getVal() => continue");
 					continue;
 				}
 				else
@@ -131,7 +131,7 @@ public class NormalizeParameterInAllEntries<S_D,T> {
 				
 				if(D.getVal() == null || D.getVal().isNaN() || D.getVal().isInfinite() )
 				{
-					//D.Set_val(Double.NaN);
+					System.out.println("D.getVal() => continue");
 					continue;
 				}
 				else
@@ -156,11 +156,4 @@ public class NormalizeParameterInAllEntries<S_D,T> {
 	{
 		return _allValuesOfParameterNormalized;
 	}
-	
-	/*public void write_normalized_files() throws IOException
-	{
-		final Charset ENCODING = StandardCharsets.UTF_8;
-		Path path = Paths.get( input_folder_path + "Normalized\\ " + file_name);
-		Files.write(path, Lines_to_output, ENCODING);
-	}*/
 }

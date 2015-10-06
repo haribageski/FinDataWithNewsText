@@ -85,7 +85,19 @@ public class Training_X_Y_matrix {
 						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllBM_Ratios().get(currentSymYear).isNaN() ||
 						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyYearSizes().get(currentSymYear).isNaN() ||
 						mapOfCompanies.get(sym).get_Company_Qoutes().get_quotes_map().get(symDate.get_Date_modif().get_prev_day_as_datemodif()).isNaN() ||
-						mapOfCompanies.get(sym).get_Company_Qoutes().get_quotes_map().get(symDate.get_Date_modif()).isNaN() 
+						mapOfCompanies.get(sym).get_Company_Qoutes().get_quotes_map().get(symDate.get_Date_modif()).isNaN() ||
+						
+						mapOfCompanies.get(sym).get_Company_SUE().Get_avg_per_y_SUE().get(year).isInfinite() ||
+						mapOfCompanies.get(sym).get_Company_Dividend().get_avg_dividends().get(year).isInfinite() ||
+						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyBookVal().get(currentSymYear).getVal().isInfinite() ||
+						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyShares().get(currentSymYear).getVal().isInfinite() ||
+						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyROE().get(currentSymYear).getVal().isInfinite() ||
+						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyAccrual().get(currentSymYear).getVal().isInfinite() ||
+						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyMarketVals().get(currentSymYear).isInfinite() ||
+						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllBM_Ratios().get(currentSymYear).isInfinite() ||
+						mapOfCompanies.get(sym).get_Fin_fundamentals().getAllCompanyYearSizes().get(currentSymYear).isInfinite() ||
+						mapOfCompanies.get(sym).get_Company_Qoutes().get_quotes_map().get(symDate.get_Date_modif().get_prev_day_as_datemodif()).isInfinite() ||
+						mapOfCompanies.get(sym).get_Company_Qoutes().get_quotes_map().get(symDate.get_Date_modif()).isInfinite() 
 						
 					){
 					//System.out.println(sym + " skipped with index = " + i);
@@ -94,6 +106,8 @@ public class Training_X_Y_matrix {
 				}
 				else
 				{
+					if(i - skipped == 72)
+						System.out.println("Sym infinity:" + sym);
 					//System.out.println("containsKey:" + Companies_match.get(Sym).get_Fin_fundamentals().get_all_company_book_val().containsKey(S_Y_prev));
 					X[0][i-skipped] = mapOfCompanies.get(sym).get_Company_SUE().Get_avg_per_y_SUE().get(year);
 					X[1][i-skipped] = mapOfCompanies.get(sym).get_Company_Dividend().get_avg_dividends().get(year);

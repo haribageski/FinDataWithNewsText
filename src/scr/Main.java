@@ -111,13 +111,13 @@ public class Main
 
 		List<String> Symbols = new ReadUniqueSymFromFile(uniqueSymPath).getLinesFromFile();
 
-		initiateStanfordNLP();	//TODO don't forget this to uncomment
+		//initiateStanfordNLP();	//TODO don't forget this to uncomment
 		
 		setColumnMapsOfParameters(Symbols);
 					
 		filterOutliers();
 				
-		//normalizeParameters();		//TODO check for division with zero or any operation producing NaN
+		normalizeParameters();		//TODO check for division with zero or any operation producing NaN
 		
 		regenerateCompanies();	
 		
@@ -131,20 +131,11 @@ public class Main
 		System.out.println("Neural network starts");
 		System.out.println("trainingCompaniesMap size:" + trainingCompaniesMap.size());
 		
-		neuralNet = new RepresentationNetwork( _symDatesForTrainingML, trainingCompaniesMap, _trainingSize, parameters);
-		
-		// Initiate neural network
-		neuralNet.Learn();		
-		System.out.println("Neural network learning done");	
-		
-		
-		
 		Double [][] XsCrossValidat = createCrossValidationMatrix();
 		List <Sym_Date> symDatesCrossValidatList = new ArrayList<Sym_Date>(_symDatesForCrossValidationML);
-		Double[][] predictedVal = neuralNet.makePrediction( XsCrossValidat, XsCrossValidat.length);
 		
 		Double [][] YCrossValidat = new Double [XsCrossValidat.length][_K];
-		for(int i = 0; i < predictedVal.length; i++)
+		for(int i = 0; i < XsCrossValidat.length; i++)
 		{
 			Sym_Date symDate = symDatesCrossValidatList.get(i);
 			System.out.println("symDate:" + symDate.get_Date_modif().toString());
@@ -168,15 +159,30 @@ public class Main
 					YCrossValidat[i][1] = 1.0;
 				}
 				//		 			.compareTo(	Column_qoutes.get());
-				System.out.println("index:" + i + 
+				/*System.out.println("index:" + i + 
 						", predicterVal:" + predictedVal[i][0].toString() + " " + predictedVal[i][1].toString() +
-						",original value:" + YCrossValidat[i][0].toString() + " " + YCrossValidat[i][1].toString());
-			
+						",original value:" + YCrossValidat[i][0].toString() + " " + YCrossValidat[i][1].toString());*/
 			}
 		}
 		
-		System.out.println("Cost in CrossValidat set = " + 
-							neuralNet.costFunctionForCrossValidat(YCrossValidat, XsCrossValidat.length));
+		neuralNet = new RepresentationNetwork( _symDatesForTrainingML, trainingCompaniesMap, _trainingSize, parameters, 
+												XsCrossValidat, YCrossValidat);
+		
+		// Initiate neural network
+		neuralNet.Learn();	
+		
+		
+		System.out.println("Neural network learning done");		
+		
+		
+		Double[][] predictedVal = neuralNet.makePrediction();
+		for(int i = 0; i < predictedVal.length; i++)
+		{
+			System.out.println("Predicted value:" + predictedVal[i][0] + " " + predictedVal[i][1] +
+					", and original value:" + YCrossValidat[i][0] + " " + YCrossValidat[i][1]);
+		}
+		
+		
 	}
 	
 	
@@ -267,7 +273,7 @@ public class Main
 	 */
 	static void setColumnMapsOfParameters(List<String>Symbols)
 	{
-		for (int f = 0; f < Symbols.size() && f < 200 ; f++)  
+		for (int f = 0; f < Symbols.size() && f < 150; f++)  
 		{
 			String Sym = Symbols.get(f);
 			
@@ -451,123 +457,144 @@ public class Main
 
 		Company company;
 
-		for (Sym_Date S_D : Column_dividends.keySet()) {
-			String Sym = S_D.get_sym();
+		for (Sym_Date symDate : Column_dividends.keySet()) {
+			String Sym = symDate.get_sym();
 
 			if (companiesMap.containsKey(Sym))
 			{
 				company = companiesMap.get(Sym);
-				company.add_dividend(Column_dividends.get(S_D));
+				company.add_dividend(Column_dividends.get(symDate));
 				companiesMap.replace(Sym, company);
 			}
 			else
 			{
 				company = new Company(Sym, pipeline); 	// the pipeline here is not used at all
-				company.add_dividend(Column_dividends.get(S_D));
+				company.add_dividend(Column_dividends.get(symDate));
 				companiesMap.put(Sym, company);
 			}		
+			if(Column_dividends.get(symDate).getVal().isNaN())
+				System.out.println("Column_dividends NaN");
 		}
 
-		for (Sym_Date S_D : Column_qoutes.keySet()) {
-			String Sym = S_D.get_sym();
+		for (Sym_Date symDate : Column_qoutes.keySet()) {
+			String Sym = symDate.get_sym();
 
 			if (companiesMap.containsKey(Sym))
 			{
 				company = companiesMap.get(Sym);
-				company.add_quote(Column_qoutes.get(S_D));
+				if(!Column_qoutes.get(symDate).getVal().isInfinite())
+				{
+					company = companiesMap.get(Sym);
+					company.add_quote(Column_qoutes.get(symDate));
+					companiesMap.replace(Sym, company);
+				}
+			}
+			else
+			{
+				if(!Column_qoutes.get(symDate).getVal().isInfinite())
+				{
+					company = new Company(Sym, pipeline); // the pipeline here is not used at all
+					company.add_quote(Column_qoutes.get(symDate));
+					companiesMap.put(Sym, company);
+				}
+			}			
+			if(Column_qoutes.get(symDate).getVal().isNaN() || Column_qoutes.get(symDate).getVal().isInfinite())
+				System.out.println("Column_qoutes val:" + Column_qoutes.get(symDate).getVal());
+		}
+
+		for (Sym_Date symDate : Column_SUEs.keySet()) {
+			String Sym = symDate.get_sym();
+
+			if (companiesMap.containsKey(Sym))
+			{
+				company = companiesMap.get(Sym);
+				company.add_SUE(Column_SUEs.get(symDate));
 				companiesMap.replace(Sym, company);
 			}
 			else
 			{
 				company = new Company(Sym, pipeline); // the pipeline here is not used at all
-				company.add_quote(Column_qoutes.get(S_D));
+				company.add_SUE(Column_SUEs.get(symDate));
 				companiesMap.put(Sym, company);
 			}			
+			if(Column_SUEs.get(symDate).getVal().isNaN())
+				System.out.println("Column_SUEs NaN");
 		}
 
-		for (Sym_Date S_D : Column_SUEs.keySet()) {
-			String Sym = S_D.get_sym();
+		for (Sym_Year symDate : Column_accrual.keySet()) {
+			String Sym = symDate.get_sym();
 
 			if (companiesMap.containsKey(Sym))
 			{
 				company = companiesMap.get(Sym);
-				company.add_SUE(Column_SUEs.get(S_D));
+				company.add_accrual(symDate, Column_accrual.get(symDate));
 				companiesMap.replace(Sym, company);
 			}
 			else
 			{
 				company = new Company(Sym, pipeline); // the pipeline here is not used at all
-				company.add_SUE(Column_SUEs.get(S_D));
+				company.add_accrual(symDate, Column_accrual.get(symDate));
+				companiesMap.put(Sym, company);
+			}	
+			if(Column_accrual.get(symDate).getVal().isNaN())
+				System.out.println("Column_accrual NaN");
+		}
+
+		for (Sym_Year symDate : Column_ROE.keySet()) {
+			String Sym = symDate.get_sym();
+
+			if (companiesMap.containsKey(Sym))
+			{
+				company = companiesMap.get(Sym);
+				company.add_ROE(symDate, Column_ROE.get(symDate));
+				companiesMap.replace(Sym, company);
+			}
+			else
+			{
+				company = new Company(Sym, pipeline); // the pipeline here is not used at all
+				company.add_ROE(symDate, Column_ROE.get(symDate));
+				companiesMap.put(Sym, company);
+			}
+			if(Column_ROE.get(symDate).getVal().isNaN())
+				System.out.println("Column_ROE NaN");
+		}
+
+		for (Sym_Year symDate : Column_book_val.keySet()) {
+			String Sym = symDate.get_sym();
+
+			if (companiesMap.containsKey(Sym))
+			{
+				company = companiesMap.get(Sym);
+				company.add_book_val(symDate, Column_book_val.get(symDate));
+				companiesMap.replace(Sym, company);
+			}
+			else
+			{
+				company = new Company(Sym, pipeline); // the pipeline here is not used at all
+				company.add_book_val(symDate, Column_book_val.get(symDate));
 				companiesMap.put(Sym, company);
 			}			
+			if(Column_book_val.get(symDate).getVal().isNaN())
+				System.out.println("Column_book_val NaN");
 		}
 
-		for (Sym_Year S_D : Column_accrual.keySet()) {
-			String Sym = S_D.get_sym();
+		for (Sym_Year symDate : Column_shares.keySet()) {
+			String Sym = symDate.get_sym();
 
 			if (companiesMap.containsKey(Sym))
 			{
 				company = companiesMap.get(Sym);
-				company.add_accrual(S_D, Column_accrual.get(S_D));
+				company.add_share(symDate, Column_shares.get(symDate));
 				companiesMap.replace(Sym, company);
 			}
 			else
 			{
 				company = new Company(Sym, pipeline); // the pipeline here is not used at all
-				company.add_accrual(S_D, Column_accrual.get(S_D));
+				company.add_share(symDate, Column_shares.get(symDate));
 				companiesMap.put(Sym, company);
 			}			
-		}
-
-		for (Sym_Year S_D : Column_ROE.keySet()) {
-			String Sym = S_D.get_sym();
-
-			if (companiesMap.containsKey(Sym))
-			{
-				company = companiesMap.get(Sym);
-				company.add_ROE(S_D, Column_ROE.get(S_D));
-				companiesMap.replace(Sym, company);
-			}
-			else
-			{
-				company = new Company(Sym, pipeline); // the pipeline here is not used at all
-				company.add_ROE(S_D, Column_ROE.get(S_D));
-				companiesMap.put(Sym, company);
-			}
-		}
-
-		for (Sym_Year S_D : Column_book_val.keySet()) {
-			String Sym = S_D.get_sym();
-
-			if (companiesMap.containsKey(Sym))
-			{
-				company = companiesMap.get(Sym);
-				company.add_book_val(S_D, Column_book_val.get(S_D));
-				companiesMap.replace(Sym, company);
-			}
-			else
-			{
-				company = new Company(Sym, pipeline); // the pipeline here is not used at all
-				company.add_book_val(S_D, Column_book_val.get(S_D));
-				companiesMap.put(Sym, company);
-			}			
-		}
-
-		for (Sym_Year S_D : Column_shares.keySet()) {
-			String Sym = S_D.get_sym();
-
-			if (companiesMap.containsKey(Sym))
-			{
-				company = companiesMap.get(Sym);
-				company.add_share(S_D, Column_shares.get(S_D));
-				companiesMap.replace(Sym, company);
-			}
-			else
-			{
-				company = new Company(Sym, pipeline); // the pipeline here is not used at all
-				company.add_share(S_D, Column_shares.get(S_D));
-				companiesMap.put(Sym, company);
-			}			
+			if(Column_shares.get(symDate).getVal().isNaN())
+				System.out.println("Column_shares NaN");
 		}
 	}
 	

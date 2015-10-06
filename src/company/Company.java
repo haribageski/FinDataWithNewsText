@@ -53,7 +53,7 @@ public class Company
 	
 	public void add_quote(BasicDailyFinData Q)
 	{
-		if(Q.getVal().isNaN())
+		if(Q.getVal().isNaN() || Q.getVal().isInfinite())
 		{
 			System.out.println("add_quote failes since NaN val");
 			return;
@@ -62,7 +62,7 @@ public class Company
 	}
 	public void add_dividend(BasicDailyFinData Divi)
 	{
-		if(Divi.getVal().isNaN())
+		if(Divi.getVal().isNaN()  || Divi.getVal().isInfinite())
 		{
 			System.out.println("add_dividend failes since NaN val");
 			return;
@@ -71,7 +71,7 @@ public class Company
 	}
 	public void add_SUE(BasicDailyFinData SU)
 	{
-		if(SU.getVal().isNaN())
+		if(SU.getVal().isNaN() || SU.getVal().isInfinite())
 		{
 			System.out.println("add_SUE failes since NaN val");
 			return;
@@ -81,7 +81,7 @@ public class Company
 	
 	public void add_ROE(Sym_Year S_D,  BasicYearlyFinData Fin_Unit)
 	{
-		if(Fin_Unit.getVal().isNaN())
+		if(Fin_Unit.getVal().isNaN() || Fin_Unit.getVal().isInfinite())
 		{
 			System.out.println("addROE failes since NaN val");
 			return;
@@ -91,7 +91,7 @@ public class Company
 	
 	public void add_share(Sym_Year S_D,  BasicYearlyFinData Fin_Unit)
 	{
-		if(Fin_Unit.getVal().isNaN())
+		if(Fin_Unit.getVal().isNaN() || Fin_Unit.getVal().isInfinite())
 		{
 			System.out.println("addShare failes since NaN val");
 			return;
@@ -101,7 +101,7 @@ public class Company
 	
 	public void add_book_val(Sym_Year S_D,  BasicYearlyFinData Fin_Unit)
 	{
-		if(Fin_Unit.getVal().isNaN())
+		if(Fin_Unit.getVal().isNaN()  || Fin_Unit.getVal().isInfinite())
 		{
 			System.out.println("addBookVal failes since NaN val");
 			return;
@@ -111,7 +111,7 @@ public class Company
 	
 	public void add_accrual(Sym_Year S_D,  BasicYearlyFinData Fin_Unit)
 	{
-		if(Fin_Unit.getVal().isNaN())
+		if(Fin_Unit.getVal().isNaN()  || Fin_Unit.getVal().isInfinite())
 		{
 			System.out.println("addAccrual failes since NaN val");
 			return;

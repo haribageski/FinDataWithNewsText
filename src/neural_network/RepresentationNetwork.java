@@ -3,6 +3,7 @@ package neural_network;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -17,23 +18,27 @@ public class RepresentationNetwork extends Matrix_operations
 	// List <Integer> s_l = new ArrayList<Integer>();
 	static int K = 2;  //output units
 	static int m;		//size of training set
-	static Double lambda = 0.1, EPSILON = 0.12;	//Math.pow(10, -4); possibly set it differently
+	static Double lambda = 0.01, EPSILON = 0.012;//Math.pow(10, -4);	// possibly set it differently (	0.12 //)
 	
 	static Double[][] Xs_training;
 	static Double [][] Ys_training;
 	
-	static Double[][] Theta_1, Theta_2;		//it's 1-indexed ,i.e. Theta1 = Thetas[1]
-	static Double[][] a_1, a_2, a_3;
-	static Double[][] z_2, z_3;
+	static Double[][] _XsCrossValidation;
+	static Double [][] _YsCrossValidation;
+	static int _crossValidatSize;
+	
+	static Double[][] Theta_1, Theta_2, Theta_3;		//it's 1-indexed ,i.e. Theta1 = Thetas[1]
+	static Double[][] a_1, a_2, a_3, a_4;
+	static Double[][] z_2, z_3, z_4;
 	static Integer[] s_l = new Integer[5];
 	
 	static Double[][] h_Theta_all_a4;
 	
-	static Double[][] delta_errors_2, delta_errors_3;	
+	static Double[][] delta_errors_2, delta_errors_3, delta_errors_4;	
 	
-	static Double[][] Delta_1, Delta_2;
+	static Double[][] Delta_1, Delta_2, Delta_3;
 
-	static Double[][] Ds_1, Ds_2;	// Ds = d/d Theta of J(Theta)
+	static Double[][] Ds_1, Ds_2, Ds_3;	// Ds = d/d Theta of J(Theta)
 	
 	public Double[][] getTheta(int i)
 	{
@@ -45,7 +50,8 @@ public class RepresentationNetwork extends Matrix_operations
 	
 	public RepresentationNetwork(
 				Set<Sym_Date> symDatesForTrainingML, Map<String, Company> companies_match, 
-				int training_size, int numOfParameters) throws FileNotFoundException, UnsupportedEncodingException 
+				int training_size, int numOfParameters, 
+				Double [][] XsCrossValidat, Double [][] YCrossValidat) throws FileNotFoundException, UnsupportedEncodingException 
 	{
 		System.out.println("RepresentationNetwork. training_size:" + training_size);
 		
@@ -113,6 +119,10 @@ public class RepresentationNetwork extends Matrix_operations
 		Xs_training = appendRowOfOnes(Xs_training, numOfParameters, training_size);
 		Ys_training = Y;
 		
+		_XsCrossValidation = XsCrossValidat;
+		_YsCrossValidation = YCrossValidat;
+		_crossValidatSize = _XsCrossValidation.length;
+		
 		initializeValues(trainingSize[0],  numOfParameters );		//minus 1 because we use the last column for evaluation
 	}
 	
@@ -125,7 +135,8 @@ public class RepresentationNetwork extends Matrix_operations
 		parameters = numOfParameters;
 		Double random;
 		
-		s_l[1]= s_l[2] = parameters;
+		s_l[1] = parameters;
+		s_l[2] = 2*parameters;
 		s_l[3] = K;
 		
 		Theta_1 = new Double[s_l[2]][s_l[1] + 1];	
@@ -156,7 +167,6 @@ public class RepresentationNetwork extends Matrix_operations
 				for(int j = 0; j < s_l[l]+1; j++)
 				{	
 					random = Math.random() * (2 * EPSILON) - EPSILON;
-					System.out.println("random:" + random);
 					if(l == 1)
 					{
 						Theta_1[i][j] = random;
@@ -173,50 +183,44 @@ public class RepresentationNetwork extends Matrix_operations
 	}
 	
 
-	public Double[][] makePrediction(Double [][] X, int crossValidatSize)
+	public Double[][] makePrediction()
 	{
-		System.out.println("Cross validation matrix:");
-		chechForNaN(X);
+		chechForNaN(_XsCrossValidation, "Cross validation matrix:");
 		
-		System.out.println("Theta 1 matrix:");
-		chechForNaN(Theta_1);
+		chechForNaN(Theta_1, "Theta 1 matrix:");
 		
-		System.out.println("Theta 2 matrix:");
-		chechForNaN(Theta_2);
+		chechForNaN(Theta_2, "Theta 2 matrix:");
 		
 		//parameters = 16;
 		
-		a_1 = new Double[parameters ][crossValidatSize];
-		a_1 = transposeMatrix(X);
-		a_1 = appendRowOfOnes(a_1 , parameters , crossValidatSize);	//becomes of size params+1 x m
+		Double [][] a_1Predict = new Double[parameters ][_crossValidatSize];
+		a_1Predict = transposeMatrix(_XsCrossValidation);
+		a_1Predict = appendRowOfOnes(a_1Predict , parameters , _crossValidatSize);	//becomes of size params+1 x m
 
-		z_2 = new Double[parameters][crossValidatSize];
-		z_2 = matrix_product(Theta_1, a_1 , s_l[2], s_l[1] + 1, crossValidatSize);
+		Double [][] z_2Predict = new Double[s_l[2]][_crossValidatSize];
+		z_2Predict = matrix_product(Theta_1, a_1Predict );	// s_l[2] x s_l[1] + 1 x crossValidatSize
 		
-		System.out.println("X  matrix in all_forward_propagation:");
-		chechForNaN(X);
+		chechForNaN(_XsCrossValidation, "_XsCrossValidation  matrix in all_forward_propagation:");
 		
-		a_2 = new Double[parameters+1][crossValidatSize];
+		Double [][] a_2Predict = new Double[s_l[2]][_crossValidatSize];
 		for(int i = 0; i < s_l[2]; i++)
-			for(int j = 0; j < crossValidatSize; j++)
-				a_2[i][j] = gFunc (z_2[i][j]);
-		a_2 = appendRowOfOnes(a_2 , s_l[2] , crossValidatSize);
+			for(int j = 0; j < _crossValidatSize; j++)
+				a_2Predict[i][j] = sigmoid (z_2Predict[i][j]);
+		a_2Predict = appendRowOfOnes(a_2Predict , s_l[2] , _crossValidatSize);
 		
-		System.out.println("a_2 matrix:");
-		chechForNaN(a_2);
+		chechForNaN(a_2Predict, "a_2Predict matrix:");
 		
-		z_3 = new Double[s_l[3]][crossValidatSize];
-		z_3 = matrix_product(Theta_2, a_2, s_l[3] , s_l[2] + 1, crossValidatSize);
+		Double [][] z_3Predict = new Double[s_l[3]][_crossValidatSize];
+		z_3Predict = matrix_product(Theta_2, a_2Predict);		//s_l[3] x s_l[2] + 1 x crossValidatSize
 		
-		System.out.println("z_3 matrix:");
-		chechForNaN(z_3);
+		chechForNaN(z_3Predict, "z_3Predict matrix:");
 		
-		h_Theta_all_a4 = new Double[s_l[3]][crossValidatSize];
+		h_Theta_all_a4 = new Double[s_l[3]][_crossValidatSize];
 		for(int i = 0; i < s_l[3]; i++)
-			for(int j = 0; j < crossValidatSize; j++)
+			for(int j = 0; j < _crossValidatSize; j++)
 			{
-				h_Theta_all_a4[i][j] = gFunc(z_3[i][j]);
-				System.out.println("h_Theta_all_a4:" + h_Theta_all_a4[i][j]);
+				h_Theta_all_a4[i][j] = sigmoid(z_3Predict[i][j]);
+				//System.out.println("h_Theta_all_a4Predict:" + h_Theta_all_a4[i][j]);
 			}
 		
 		return  transposeMatrix(h_Theta_all_a4);
@@ -233,141 +237,171 @@ public class RepresentationNetwork extends Matrix_operations
 	 */
 	public void Learn()	
 	{
-		Double prevCostFunctionJ = 100000.0;
+		int iteration = 1;
+		Double prevCostJ = 100000.0;
+		Double currentCostJ = prevCostJ;
+		Double prevCostCrossVal = 100000.0;
+		Double currentCostCrossVal = prevCostCrossVal;
 		allForwardPropagation();
+		
 		do 
 		{
-			prevCostFunctionJ = costFunctionJ();
-			allForwardPropagation();
+			System.out.println("iteration " + iteration + " in neural net learning");
+			iteration++;
+			System.out.println("prevCostJ:" + prevCostJ + ", current cost is:" + currentCostJ);
+			prevCostJ = currentCostJ;
 			all_Backpropagation();
-			System.out.println("prevCostFunctionJ:" + prevCostFunctionJ);
+			prevCostCrossVal = currentCostCrossVal;
 			updateTheta();
-			System.out.println("costFunctionJ:" + costFunctionJ());
-		} while(costFunctionJ() <= prevCostFunctionJ);
+			makePrediction();
+			currentCostCrossVal = costFunctionForCrossValidat();
+			System.out.println("Cost in CrossValidat set: " + costFunctionForCrossValidat());
+			allForwardPropagation();
+			currentCostJ = costFunctionJ();
+			
+		} while(currentCostJ < prevCostJ || currentCostCrossVal < prevCostCrossVal);
 		
-		System.out.println("Theta 1 matrix:");
-		chechForNaN(Theta_1);
+		chechForNaN(Theta_1, "Theta 1 matrix:");
 		
-		System.out.println("Theta 2 matrix:");
-		chechForNaN(Theta_2);
+		chechForNaN(Theta_2, "Theta 2 matrix:");
 		
 	}
 
 	void updateTheta()
 	{
-		for(int l=1; l<Layers -1; l++)
-			for(int i=0; i < s_l[l+1]; i++)
-				for(int j=0; j < s_l[l]+1; j++)
+		for(int l = 1; l < Layers -1; l++)
+			for(int i = 0; i < s_l[l+1]; i++)
+				for(int j = 0; j < s_l[l]+1; j++)
 				{
 					if(l == 1)
-						Theta_1[i][j] -= lambda * Ds_1[i][j];
+						Theta_1[i][j] -= EPSILON * Ds_1[i][j];
 					else
-						Theta_2[i][j] -= lambda * Ds_2[i][j];
+						Theta_2[i][j] -= EPSILON * Ds_2[i][j];
 				}
 		
-		System.out.println("Ds 1  updated matrix:");
-		chechForNaN(Ds_1);
+		chechForNaN(Ds_1, "Ds 1  updated matrix:");
 		
-		System.out.println("Thetas 1  updated matrix:");
-		chechForNaN(Theta_1);
+		chechForNaN(Theta_1, "Thetas 1  updated matrix:");
 	}
 	
 	public void allForwardPropagation ()
 	{
+		
+		chechForNaN(Xs_training, "Xs_training  matrix in all_forward_propagation");
+		chechForInfinity(Xs_training, "Xs_training  matrix in all_forward_propagation");
+		
 		a_1 = Xs_training;
 		a_1 = appendRowOfOnes(a_1 , parameters , m);	//becomes of size params+1 x m
-
-		z_2 = matrix_product(Theta_1, a_1 , s_l[2], s_l[1] + 1, m);
 		
-		System.out.println("Xs_training  matrix in all_forward_propagation:");
-		chechForNaN(Xs_training);
+		z_2 = matrix_product(Theta_1, a_1 );		// s_l[2] x s_l[1] + 1 x m
+		//z_2 = matrix_product(a_1' , Theta_1);		// m x s_l[1] + 1 x s_l[2]
+		chechForNaN(z_2, "z_2");
+		chechForInfinity(z_2, "z_2");
 		
-		for(int i=0; i< s_l[2]; i++)
-			for(int j=0; j< m; j++)
-				a_2[i][j] = gFunc (z_2[i][j]);
+		chechForNaN(Ys_training, "Y  matrix in all_forward_propagation:");
+		chechForInfinity(Ys_training, "Y  matrix in all_forward_propagation:");
+		
+		a_2 = sigmoid(z_2);
 		a_2 = appendRowOfOnes(a_2 , s_l[2] , m);
 		
-		System.out.println("a_2 matrix:");
-		chechForNaN(a_2);
+		chechForNaN(a_2, "a_2 matrix:");
+		chechForInfinity(a_2, "a_2 matrix:");
 		
-		z_3 = matrix_product(Theta_2, a_2, s_l[3] , s_l[2] + 1, m);
+		z_3 = matrix_product(Theta_2, a_2);		//s_l[3] x s_l[2] + 1 x m
 		
-		System.out.println("z_3 matrix:");
-		chechForNaN(z_3);
+		chechForNaN(z_3, "z_3 matrix:");
+		chechForInfinity(z_2, "z_3 matrix:");
 		
-		for(int i = 0; i < s_l[3]; i++)
-			for(int j = 0; j < m; j++)
-				h_Theta_all_a4[i][j] = gFunc(z_3[i][j]);
+		h_Theta_all_a4 = new Double[s_l[3]][m];
+		h_Theta_all_a4 = sigmoid(z_3);
 		
 		a_3 = h_Theta_all_a4;
+		chechForNaN(a_3, "a_3 matrix:");
+		chechForInfinity(a_3, "a_3 matrix:");
 	}
 	
 	
 	void all_Backpropagation()
 	{
-		System.out.println("h_Theta_all_a4 matrix:");
-		chechForNaN(h_Theta_all_a4);
+		System.out.println();
+		chechForNaN(h_Theta_all_a4, "all_Backpropagation: h_Theta_all_a4 matrix:");
+		chechForInfinity(h_Theta_all_a4, "all_Backpropagation: h_Theta_all_a4 matrix:");
 		
-		System.out.println("all_backwards().Y matrix:");
-		for(int i = 0; i < Ys_training.length; i++)
-		{
-			if(Ys_training[i] == null)
-				System.out.println("index:" + 0 + "x" + i + " is null");
-			/*else
-				if(Ys_training[i].isNaN())
-					System.out.println("index:" + 0 + "x" + i + " is NaN");
-					*/
-		}
-		
+		System.out.println();
+		chechForNaN(Ys_training, "all_Backpropagation: all_backwards().Y matrix:");
+		chechForInfinity(Ys_training, "all_Backpropagation: all_backwards().Y matrix:");
 		
 		for(int i = 0; i < m; i++)
 			for(int j = 0; j < K; j++)
-			delta_errors_3[j][i] = h_Theta_all_a4[j][i] - Double.parseDouble(Ys_training[i][j].toString());
+			{
+				delta_errors_3[j][i] = h_Theta_all_a4[j][i] - Ys_training[i][j];
+				if(delta_errors_3[j][i].isNaN())
+					System.out.println("all_Backpropagation: delta_errors_3[i][j]:" + j + "x" + i + " = " + delta_errors_3[j][i] );
+			}
 		
 		delta_errors_2 = 
 					dot_product(  
-							matrix_product( transposeMatrix(Theta_2),delta_errors_3, s_l[2] + 1 , s_l[3], m) , 
+							matrix_product( transposeMatrix(Theta_2),delta_errors_3) , // s_l[2] + 1 x s_l[3] x m
 							dot_product(a_2, vector_dot_minus(1.0 , a_2, s_l[2] + 1 , m) , s_l[2] + 1 , m)
 							, s_l[2] + 1 ,m	);
 		
 		delta_errors_2 = delete_first_raw(delta_errors_2, s_l[2] + 1 , m);
-		
+		chechForNaN(delta_errors_2, "all_Backpropagation: delta_errors_2:" );
+		chechForInfinity(delta_errors_2, "all_Backpropagation: delta_errors_2:" );
+
+		chechForNaN(a_1, "all_Backpropagation: a_1:" );
+		chechForInfinity(a_1, "all_Backpropagation: a_1:" );
+
+		chechForNaN(a_2, "all_Backpropagation: a_2:" );
+		chechForInfinity(a_2, "all_Backpropagation: a_2:" );
 		
 		for(int l = 1; l < Layers - 1 ; l++)		//Theta_3 is of different dimension
 		{
 			if(l == 1)
+			{
+				chechForNaN(Delta_1, "Delta_1:" );
+				chechForInfinity(Delta_1, "Delta_1:" );
+				
 				Delta_1 = dot_sum(Delta_1,
-						matrix_product (delta_errors_2, transposeMatrix(a_1) , s_l[2], m, s_l[1] + 1)
+						matrix_product (delta_errors_2, transposeMatrix(a_1) )		//s_l[2] x m x s_l[1] + 1
 						, s_l[2], s_l[1] + 1);
+			}
+						
 			else
 				Delta_2 = dot_sum(Delta_2,
-						matrix_product (delta_errors_3, transposeMatrix(a_2) , s_l[3], m, s_l[2] + 1)
+						matrix_product (delta_errors_3, transposeMatrix(a_2))		//s_l[3] x m x s_l[2] + 1
 						, s_l[3], s_l[2] + 1);
 		}
+		chechForNaN(Delta_1, "all_Backpropagation: Delta_1:");
+		chechForNaN(Delta_2, "all_Backpropagation: Delta_2:");
 		
-		
-		Double[][][] approximation = gradApprox();
+		//Double[][][] approximation = gradApprox();
 		for(int l=1; l< Layers - 1; l++)	//Theta_3 is of different dimension
 			for(int i=0; i < s_l[l+1]; i++)
 				for(int j=0; j < s_l[l]+1; j++)
 				{
 					if(l == 1)
 					{
+						if(Delta_1[i][j].isNaN())
+							System.out.println("all_Backpropagation: Delta_1 with index:" + l + "x" + i + "x" + j + " = " + Delta_1[i][j] );
 						Ds_1[i][j] = Delta_1[i][j]/m ;
 						if(j!=0)
-							Ds_1[i][j] +=  lambda * Theta_1[i][j];
-						
-						System.out.println("Ds with index:" + l + "x" + i + "x" + j + " = " + Ds_1[i][j] + 
-								", and the approximation is:" + approximation[l][i][j]);	
+							Ds_1[i][j] +=  lambda/m * Theta_1[i][j];
+						/*if(Ds_1[i][j].isNaN())
+							System.out.println("all_Backpropagation: Ds with index:" + l + "x" + i + "x" + j + " = " + Ds_1[i][j] + 
+								", and the approximation is:" + approximation[l][i][j]);	*/
 					}
 					else
 					{
+						if(Delta_2[i][j].isNaN())
+							System.out.println("all_Backpropagation: Delta_2 with index:" + l + "x" + i + "x" + j + " = " + Delta_2[i][j] );
 						Ds_2[i][j] = Delta_2[i][j]/m ;
 						if(j!=0)
-							Ds_2[i][j] +=  lambda * Theta_1[i][j];
+							Ds_2[i][j] +=  lambda/m * Theta_1[i][j];
 						
-						System.out.println("Ds with index:" + l + "x" + i + "x" + j + " = " + Ds_2[i][j] + 
-								", and the approximation is:" + approximation[l][i][j]);	
+						/*if(Ds_2[i][j].isNaN())
+							System.out.println("all_Backpropagation: Ds with index:" + l + "x" + i + "x" + j + " = " + Ds_2[i][j] + 
+								", and the approximation is:" + approximation[l][i][j]);	*/
 					}
 								
 				}
@@ -386,18 +420,20 @@ public class RepresentationNetwork extends Matrix_operations
 			for(int j = 0; j < K; j++)
 			{
 				//Current_Sum += Math.pow(Ys_training[i][j] - h_Theta_all_a4[j][i] , 2);
-				Current_Sum -= (Ys_training[i][j]* Math.log(h_Theta_all_a4[j][i]) + (1-Ys_training[i][j]) * Math.log(1-h_Theta_all_a4[j][i]));
+				//if((Ys_training[i][j] == 0 && h_Theta_all_a4[j][i] >= 0.5) || (Ys_training[i][j] == 1 && h_Theta_all_a4[j][i] < 0.5 ))
+				//	Current_Sum ++;
+				Current_Sum -= Ys_training[i][j] * Math.log(h_Theta_all_a4[j][i]) + (1-Ys_training[i][j]) * Math.log(1-h_Theta_all_a4[j][i]);
 				//System.out.println("index:" + i + ",predicted val:" + h_Theta_all_a4[0][i] + ", and true value:" + Ys_training[i]);
 			}
 		Current_Sum /= m;
 		for(int l = 1; l <= Layers-1 ; l++)
-			for(int i = 0; i < s_l[l] ; i++)
-				for(int j = 0; j < s_l[l+1]; j++ )
+			for(int i = 0; i < s_l[l+1]; i++ )
+				for(int j = 1; j < s_l[l]+1 ; j++)
 				{
 					if(l == 1)
-						Second_sum += Math.pow(Theta_1[j][i] , 2);
+						Second_sum += Math.pow(Theta_1[i][j] , 2);
 					else
-						Second_sum += Math.pow(Theta_2[j][i] , 2);
+						Second_sum += Math.pow(Theta_2[i][j] , 2);
 				}
 		
 		Current_Sum += lambda * Second_sum / (2 * m);
@@ -406,7 +442,7 @@ public class RepresentationNetwork extends Matrix_operations
 	
 	
 	
-	public Double[][][] gradApprox()
+	/*public Double[][][] gradApprox()
 	{
 		Double[][][] gradApproximation = new Double [Layers][parameters][parameters+1];	
 		for(int l = 1; l <= Layers-1 ; l++)
@@ -424,6 +460,7 @@ public class RepresentationNetwork extends Matrix_operations
 		}
 		return gradApproximation;
 	}
+	*/
 	
 	/**
 	 * 
@@ -437,7 +474,9 @@ public class RepresentationNetwork extends Matrix_operations
 		for(int i = 0; i < m ; i++)
 			for(int j = 0; j < K ; j++)
 		{
-			Current_Sum -= (Double.parseDouble(Ys_training[i][j].toString())* Math.log(h_Theta_all_a4[j][i]) + (1-Double.parseDouble(Ys_training[i][j].toString())) * Math.log(1-h_Theta_all_a4[j][i]));
+			if((Ys_training[i][j] == 0 && h_Theta_all_a4[j][i] >= 0.5) || (Ys_training[i][j] == 1 && h_Theta_all_a4[j][i] < 0.5 ))
+				Current_Sum ++;
+			//Current_Sum -= (Double.parseDouble(Ys_training[i][j].toString())* Math.log(h_Theta_all_a4[j][i]) + (1-Double.parseDouble(Ys_training[i][j].toString())) * Math.log(1-h_Theta_all_a4[j][i]));
 			//System.out.println("index:" + i + ",predicted val:" + h_Theta_all_a4[0][i] + ", and true value:" + Ys_training[i]);
 		}
 		Current_Sum /= m;
@@ -477,42 +516,44 @@ public class RepresentationNetwork extends Matrix_operations
 	}
 	
 		
-	public Double costFunctionForCrossValidat(Double[][] Y, int crossValidatSize)
+	public Double costFunctionForCrossValidat()
 	{
-		Double Current_Sum = 0.0 , Second_sum = 0.0;
-		System.out.println("h_Theta_all_a4 size: 1x" + h_Theta_all_a4[0].length + ", crossValidatSize size" + crossValidatSize);
-		for(int i = 0; i < crossValidatSize ; i++)
+		Double Current_Sum = 0.0;
+		System.out.println("h_Theta_all_a4 size: 1x" + h_Theta_all_a4[0].length + ", crossValidatSize size" + _crossValidatSize);
+		for(int i = 0; i < _crossValidatSize ; i++)
 			for(int j = 0; j < K; j++)
 			{
 				if(h_Theta_all_a4[j][i] == null)
-					System.out.println("h_Theta_all_a4 is null");
-				if(Y[i][j] == null)
+					System.out.println("h_Theta_all is null");
+				if(_YsCrossValidation[i][j] == null)
 					System.out.println("Y is null");
-				Current_Sum  -=(Double.parseDouble(Y[i][j].toString())* Math.log(h_Theta_all_a4[j][i]) + (1- Double.parseDouble(Y[i][j].toString())) * Math.log(1-h_Theta_all_a4[j][i]));
+				if((_YsCrossValidation[i][j] == 0 && h_Theta_all_a4[j][i] >= 0.5) || (_YsCrossValidation[i][j] == 1 && h_Theta_all_a4[j][i] < 0.5 ))
+					Current_Sum ++;
+					//Current_Sum  -=(Double.parseDouble(_YsCrossValidation[i][j].toString())* Math.log(h_Theta_all_a4[j][i]) + 
+					//	(1- Double.parseDouble(_YsCrossValidation[i][j].toString())) * Math.log(1-h_Theta_all_a4[j][i]));
 				//System.out.println("index:" + i + ",predicted val:" + h_Theta_all_a4[0][i] + ", and true value:" + Ys_training[i]);
+				//Current_Sum += Math.pow(_YsCrossValidation[i][j] - h_Theta_all_a4[j][i] , 2);
 			}
-		Current_Sum /= crossValidatSize;
+		Current_Sum /= _crossValidatSize;
 		
-		/*
-		for(int l = 1; l <= Layers-1 ; l++)
-			for(int i = 0; i < s_l[l] ; i++)
-				for(int j = 0; j < s_l[l+1]; j++ )
-				
-				{
-					if(l == 1)
-						Second_sum += Math.pow(Theta_1[j][i] , 2);
-					else
-						Second_sum += Math.pow(Theta_2[j][i] , 2);
-				}
-		Current_Sum += lambda * Second_sum / (2 * crossValidatSize);
-		*/
 		return Current_Sum;
 	}
 	
 	
-	static Double gFunc(Double z)
+	static Double sigmoid(Double z)
 	{
 		return 1/(1+Math.pow(Math.E , -z));
+	}
+	
+	static Double[][] sigmoid(Double [][] M)
+	{
+		Double SigmoidM[][] = new Double[M.length][M[0].length];
+		for(int i = 0; i < M.length; i++)
+			for(int j = 0; j < M[0].length; j++)
+			{
+				SigmoidM[i][j] = sigmoid (M[i][j]);
+			}
+		return SigmoidM;
 	}
 	
 }

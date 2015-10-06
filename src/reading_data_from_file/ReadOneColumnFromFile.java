@@ -37,8 +37,10 @@ public class ReadOneColumnFromFile {
 			String[] columns = line.split("\\t");
 			boolean skeepLine = false;
 			for(int i = 0; i < columns.length; i++)
-				if(columns[i].equals("null") || columns[i].equals("NaN") || columns[i].equals("") )
+			{
+				if(columns[i].equals("null") || columns[i].equals("NaN") || columns[i].equals("") || columns[i].equals("Infinity") || columns[i].equals("-Infinity") )
 					skeepLine = true;
+			}
 			if(!skeepLine)
 				oneColumn.add(columns[indexOfTheColumn]);
 		}

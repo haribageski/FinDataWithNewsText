@@ -20,8 +20,11 @@ public class Matrix_operations
 	 * @param index_3
 	 * @return
 	 */
-	public Double[][] matrix_product (Double [][] M1, Double [][] M2, Integer index_1 , Integer index_2, Integer index_3)
+	public Double[][] matrix_product (Double [][] M1, Double [][] M2)
 	{
+		int index_1 = M1.length;
+		int index_2 = M1[0].length; 
+		int index_3 = M2[0].length;
 		Double[][] R = new Double[index_1][index_3];
 		for(int i=0; i<index_1 ; i++)
 			for(int j=0; j<index_3; j++)
@@ -39,6 +42,10 @@ public class Matrix_operations
 					if(M2[k][j] != null)
 						System.out.println(M2[k][j].toString());
 					System.out.println("M2[k][j]:" + M2[k][j]);				*/	
+					if(M1[i][k] == null || M1[i][k].isNaN())
+						System.out.println("matrix multiplication element derived with index:" + i + "x" + k + "is:" + M1[i][k]);
+					if(M2[k][j] == null || M2[k][j].isNaN())
+						System.out.println("matrix multiplication element derived with index:" + k + "x" + j + "is:" + M2[k][j]);
 					Sum += M1[i][k] * M2[k][j];
 				}
 				R[i][j] = Sum;
@@ -189,13 +196,39 @@ public class Matrix_operations
         return result;
     }
 	
-	public static boolean chechForNaN(Double [][] M1)
+	public static boolean chechForNaN(Double [][] M1, String className)
 	{
+		boolean nameDisplayed = false;
+		
 		for(int i = 0; i < M1.length; i++)
 			for(int j = 0; j < M1[0].length; j++)
 				if(M1[i][j].isNaN())
 				{
+					if(nameDisplayed == false)
+					{
+						System.out.println(className);
+						nameDisplayed = true;
+					}
 					System.out.println("element with index:" + i + "x" + j + " is NaN");
+					return true;
+				}
+		return false;
+	}
+	
+	public static boolean chechForInfinity(Double [][] M1, String className)
+	{
+		boolean nameDisplayed = false;
+		
+		for(int i = 0; i < M1.length; i++)
+			for(int j = 0; j < M1[0].length; j++)
+				if(M1[i][j].isInfinite())
+				{
+					if(nameDisplayed == false)
+					{
+						System.out.println(className);
+						nameDisplayed = true;
+					}
+					System.out.println("element with index:" + i + "x" + j + " is Infinity");
 					return true;
 				}
 		return false;

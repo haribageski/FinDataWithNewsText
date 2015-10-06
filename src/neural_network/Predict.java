@@ -35,19 +35,19 @@ public class Predict extends RepresentationNetwork
 		
 		Z_2 = Matrix_operations.matrix_product(Theta1, X , parameters, parameters+1);
 		for(int i=0; i< parameters; i++)
-			a_l[2][i] = gFunc (Z_2[i]);
+			a_l[2][i] = sigmoid (Z_2[i]);
 		a_l[2] = add_ones_as_first(a_l[2] );
 		
 		Double[] Z_3 = new Double[parameters];
 		Z_3 = matrix_product(Thetas[2], a_l[2] , parameters, parameters+1);
 		for(int i=0; i< parameters; i++)
-			a_l[3][i] = gFunc (Z_3[i]);
+			a_l[3][i] = sigmoid (Z_3[i]);
 		a_l[3] = add_ones_as_first(a_l[3] );
 		
 		Double Z_4 = 0.0;
 		Z_4 = matrix_product(Thetas[3], a_l[3] , 1, parameters+1)[0];
 
-		h_Theta_all_a4[0][0] = gFunc (Z_4);
+		h_Theta_all_a4[0][0] = sigmoid (Z_4);
 		return  h_Theta_all_a4[0][0];
 	}
 }

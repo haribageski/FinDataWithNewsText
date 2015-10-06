@@ -31,7 +31,7 @@ public class ToBeFilteredFromOutliers<S_D,T>  {
 		T val = (T) _orderedMap.values().toArray()[0];
 		
 		
-		Double lower_upper_outliers = _orderedMap.size()/200.0;
+		Double lower_upper_outliers = _orderedMap.size()/100.0;
 		
 		for(int i=0; i<lower_upper_outliers.intValue();  i++)	
 		{

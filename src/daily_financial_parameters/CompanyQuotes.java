@@ -83,8 +83,9 @@ public class CompanyQuotes {
 			//System.out.println("Normalized_close_price.get(i):" + Normalized_close_price.get(i));
 			c_price = Double.parseDouble(Normalized_close_price.get(i));
 			
-			if(c_price.equals(Double.NaN) || c_price.equals(null))
+			if(c_price.isNaN()|| c_price.equals(null) || c_price.isInfinite())
 				continue;
+			
 			BasicDailyFinData priceAtDate = new BasicDailyFinData(Sym, c_price, date);
 			_allCompanyQuotes.add( priceAtDate );
 			_allCompanyQuotesYears.add(date.get_year_in_date());

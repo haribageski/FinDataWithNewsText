@@ -81,7 +81,7 @@ public class CompanyDividend {
 			date = new DateModif(Read_date.getTheColumn().get(i) );
 			Double dividend = Double.parseDouble(Normalized_dividend_price.get(i));
 			
-			if(dividend.equals(Double.NaN) || dividend.equals(null))
+			if(dividend.isNaN() || dividend.equals(null) || dividend.isInfinite())
 				continue;
 			
 			BasicDailyFinData Divid = new BasicDailyFinData(Sym, dividend);
